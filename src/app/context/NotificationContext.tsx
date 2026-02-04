@@ -14,6 +14,7 @@ interface NotificationContextType {
     notifications: Notification[];
     fcmToken: string | null;
     requestUserPermission: () => Promise<void>;
+    addManualNotification: (title: string, body: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -25,6 +26,8 @@ export const useNotifications = () => {
     }
     return context;
 };
+
+import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -39,7 +42,19 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         if (enabled) {
             console.log('Authorization status:', authStatus);
             getFcmToken();
+            createNotificationChannel();
         }
+    };
+
+    const createNotificationChannel = async () => {
+        // Create a channel
+        await notifee.createChannel({
+            id: 'custom_sound_channel',
+            name: 'Custom Sound Channel',
+            sound: 'custom_sound', // The file name without extension
+            importance: AndroidImportance.HIGH,
+        });
+        console.log('Notification channel created: custom_sound_channel');
     };
 
     const getFcmToken = async () => {
@@ -66,13 +81,36 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         setNotifications((prev) => [newNotification, ...prev]);
     };
 
+    const addManualNotification = (title: string, body: string) => {
+        const newNotification: Notification = {
+            id: Date.now().toString(),
+            title: title || 'No Title',
+            body: body || 'No Body',
+            receivedAt: Date.now(),
+            data: {},
+        };
+        setNotifications((prev) => [newNotification, ...prev]);
+    };
+
     useEffect(() => {
         requestUserPermission();
 
         // Handle Foreground Messages
         const unsubscribe = messaging().onMessage(async (remoteMessage) => {
             console.log('A new FCM message arrived!', remoteMessage);
-            Alert.alert('New Notification', remoteMessage.notification?.title);
+
+            // Display notification using Notifee for foreground
+            await notifee.displayNotification({
+                title: remoteMessage.notification?.title,
+                body: remoteMessage.notification?.body,
+                android: {
+                    channelId: 'custom_sound_channel',
+                    pressAction: {
+                        id: 'default',
+                    },
+                },
+            });
+
             addNotification(remoteMessage);
         });
 
@@ -96,7 +134,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     return (
-        <NotificationContext.Provider value={{ notifications, fcmToken, requestUserPermission }}>
+        <NotificationContext.Provider value={{ notifications, fcmToken, requestUserPermission, addManualNotification }}>
             {children}
         </NotificationContext.Provider>
     );

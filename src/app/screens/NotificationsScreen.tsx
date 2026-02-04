@@ -37,12 +37,6 @@ const NotificationsScreen = () => {
                 </TouchableOpacity>
             </View>
 
-            {fcmToken ? (
-                <Text style={styles.tokenText} numberOfLines={1}>Token: {fcmToken.substring(0, 20)}...</Text>
-            ) : (
-                <Text style={styles.tokenText}>Fetching Token...</Text>
-            )}
-
             {notifications.length === 0 ? (
                 <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>No notifications yet</Text>
