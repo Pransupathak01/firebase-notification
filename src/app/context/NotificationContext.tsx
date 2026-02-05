@@ -49,12 +49,12 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const createNotificationChannel = async () => {
         // Create a channel
         await notifee.createChannel({
-            id: 'custom_sound_channel',
-            name: 'Custom Sound Channel',
+            id: 'sound_channel_final',
+            name: 'Sound Channel Final',
             sound: 'custom_sound', // The file name without extension
             importance: AndroidImportance.HIGH,
         });
-        console.log('Notification channel created: custom_sound_channel');
+        console.log('Notification channel created: sound_channel_final');
     };
 
     const getFcmToken = async () => {
@@ -104,7 +104,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
                 title: remoteMessage.notification?.title,
                 body: remoteMessage.notification?.body,
                 android: {
-                    channelId: 'custom_sound_channel',
+                    channelId: 'sound_channel_final',
+                    smallIcon: 'ic_launcher', // Explicitly set small icon
                     pressAction: {
                         id: 'default',
                     },

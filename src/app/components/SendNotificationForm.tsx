@@ -25,8 +25,8 @@ const SendNotificationForm: React.FC<SendNotificationFormProps> = ({ visible, on
         try {
             await notifee.requestPermission();
             const channelId = await notifee.createChannel({
-                id: 'custom_sound_channel',
-                name: 'Custom Sound Channel',
+                id: 'sound_channel_final',
+                name: 'Sound Channel Final',
                 sound: 'custom_sound',
                 importance: AndroidImportance.HIGH,
             });
@@ -92,7 +92,7 @@ const SendNotificationForm: React.FC<SendNotificationFormProps> = ({ visible, on
 
                         <View style={styles.infoContainer}>
                             <Text style={styles.infoText}>
-                                Uses 'custom_sound_channel' with 'custom_sound.mp3'.
+                                Uses 'sound_channel_final' with 'custom_sound.mp3'.
                             </Text>
                             {fcmToken && (
                                 <Text style={styles.tokenText}>FCM Token Active</Text>
