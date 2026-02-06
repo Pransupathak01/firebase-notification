@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigations/AppNavigator';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import productsData from '../../data/products.json';
 
@@ -20,14 +22,14 @@ interface Product {
 const ProductItem = ({ item }: { item: Product }) => {
     const [imageError, setImageError] = React.useState(false);
 
-    const navigation = useNavigation();
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
     return (
         <View style={styles.itemWrapper}>
             <TouchableOpacity
                 style={styles.card}
                 activeOpacity={0.9}
-                onPress={() => navigation.navigate('ProductDetails' as never, { product: item } as never)}
+                onPress={() => navigation.navigate('ProductDetails', { product: item })}
             >
                 <View style={[styles.imageContainer, imageError && styles.errorImageContainer]}>
                     <Image
@@ -47,13 +49,13 @@ const ProductItem = ({ item }: { item: Product }) => {
 };
 
 const ProductScreen = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Products</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Cart' as never)}>
+                <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
                     <Ionicons name="cart-outline" size={28} color="#1A1A1A" />
                 </TouchableOpacity>
             </View>

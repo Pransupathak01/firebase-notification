@@ -4,7 +4,13 @@ import BottomTabNavigator from './BottomTabNavigator';
 import CartScreen from '../screens/CartScreen';
 import ProductDetailsScreen from '../screens/ProductDetailsScreen';
 
-const Stack = createNativeStackNavigator();
+export type RootStackParamList = {
+    MainTabs: undefined;
+    Cart: undefined;
+    ProductDetails: { product: any };
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
     return (

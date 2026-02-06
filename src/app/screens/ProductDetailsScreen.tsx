@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { useCart } from '../context/CartContext';
+import analytics from '@react-native-firebase/analytics';
 
 const { width } = Dimensions.get('window');
 
@@ -13,7 +14,17 @@ const ProductDetailsScreen = () => {
     const { addToCart } = useCart();
     const { product } = route.params as { product: any } || {};
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
+        const trackButtonPress = async () => {
+            await analytics().logEvent('add_to_cart', {
+                id: product?.id,
+                item: product?.name,
+                product_name: product?.name,
+                size: 'large',
+                timestamp: new Date().toISOString(),
+            });
+        };
+        await trackButtonPress();
         if (product) {
             addToCart(product);
             navigation.navigate('Cart' as never);
