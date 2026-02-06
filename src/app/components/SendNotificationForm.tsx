@@ -36,6 +36,8 @@ const SendNotificationForm: React.FC<SendNotificationFormProps> = ({ visible, on
                 body: body,
                 android: {
                     channelId,
+                    smallIcon: 'ic_notification',
+                    color: '#db6809ff',
                     pressAction: { id: 'default' },
                 },
             });

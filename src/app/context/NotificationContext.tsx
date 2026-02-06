@@ -105,7 +105,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
                 body: remoteMessage.notification?.body,
                 android: {
                     channelId: 'sound_channel_final',
-                    smallIcon: 'ic_launcher', // Explicitly set small icon
+                    smallIcon: 'ic_notification',
+                    color: '#db6809ff',
                     pressAction: {
                         id: 'default',
                     },
