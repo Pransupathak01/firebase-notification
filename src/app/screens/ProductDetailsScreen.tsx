@@ -5,6 +5,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { useCart } from '../context/CartContext';
 import analytics from '@react-native-firebase/analytics';
+import ZoomGallery from '../components/ZoomGallery';
 
 const { width } = Dimensions.get('window');
 
@@ -52,7 +53,7 @@ const ProductDetailsScreen = () => {
                     >
                         <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
                     </TouchableOpacity>
-                    <Image source={{ uri: product.image }} style={styles.image} resizeMode="cover" />
+                    <ZoomGallery images={product.images} />
                 </View>
 
                 <View style={styles.content}>
@@ -111,9 +112,11 @@ const styles = StyleSheet.create({
     },
     imageContainer: {
         width: width,
-        height: width, // Square image
         backgroundColor: '#F0F0F0',
         position: 'relative',
+        paddingTop: 80, // Space for back button
+        paddingBottom: 20,
+        alignItems: 'center',
     },
     image: {
         width: '100%',

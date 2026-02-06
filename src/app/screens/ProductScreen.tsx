@@ -16,7 +16,7 @@ interface Product {
     id: string;
     name: string;
     price: string;
-    image: string;
+    images: string[];
 }
 
 const ProductItem = ({ item }: { item: Product }) => {
@@ -33,7 +33,7 @@ const ProductItem = ({ item }: { item: Product }) => {
             >
                 <View style={[styles.imageContainer, imageError && styles.errorImageContainer]}>
                     <Image
-                        source={imageError ? { uri: 'https://via.placeholder.com/150' } : { uri: item.image }}
+                        source={imageError ? { uri: 'https://via.placeholder.com/150' } : { uri: item.images[0] }}
                         style={styles.image}
                         resizeMode="cover"
                         onError={() => setImageError(true)}
