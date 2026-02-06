@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
+import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import productsData from '../../data/products.json';
 
 const COLUMN_COUNT = 2;
@@ -18,9 +20,15 @@ interface Product {
 const ProductItem = ({ item }: { item: Product }) => {
     const [imageError, setImageError] = React.useState(false);
 
+    const navigation = useNavigation();
+
     return (
         <View style={styles.itemWrapper}>
-            <View style={styles.card}>
+            <TouchableOpacity
+                style={styles.card}
+                activeOpacity={0.9}
+                onPress={() => navigation.navigate('ProductDetails' as never, { product: item } as never)}
+            >
                 <View style={[styles.imageContainer, imageError && styles.errorImageContainer]}>
                     <Image
                         source={imageError ? { uri: 'https://via.placeholder.com/150' } : { uri: item.image }}
@@ -33,14 +41,22 @@ const ProductItem = ({ item }: { item: Product }) => {
                     <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
                     <Text style={styles.price}>{item.price}</Text>
                 </View>
-            </View>
+            </TouchableOpacity>
         </View>
     );
 };
 
 const ProductScreen = () => {
+    const navigation = useNavigation();
+
     return (
         <View style={styles.container}>
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>Products</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Cart' as never)}>
+                    <Ionicons name="cart-outline" size={28} color="#1A1A1A" />
+                </TouchableOpacity>
+            </View>
             <FlashList
                 data={productsData}
                 renderItem={({ item }) => <ProductItem item={item} />}
@@ -58,6 +74,22 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F5F7FA',
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+        paddingTop: 60, // approximate for status bar
+        paddingBottom: 24,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0',
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#1A1A1A',
     },
     listContent: {
         paddingHorizontal: HALF_SPACING,

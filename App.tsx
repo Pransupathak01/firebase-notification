@@ -2,9 +2,10 @@ import React from 'react';
 import { StatusBar, useColorScheme } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import BottomTabNavigator from './src/app/navigations/BottomTabNavigator';
+import AppNavigator from './src/app/navigations/AppNavigator';
 
 import { NotificationProvider } from './src/app/context/NotificationContext';
+import { CartProvider } from './src/app/context/CartContext';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -13,9 +14,11 @@ function App() {
     <SafeAreaProvider>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <NotificationProvider>
-        <NavigationContainer>
-          <BottomTabNavigator />
-        </NavigationContainer>
+        <CartProvider>
+          <NavigationContainer>
+            <AppNavigator />
+          </NavigationContainer>
+        </CartProvider>
       </NotificationProvider>
     </SafeAreaProvider>
   );
