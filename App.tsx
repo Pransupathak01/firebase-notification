@@ -1,7 +1,7 @@
 import React from 'react';
 import { StatusBar, useColorScheme } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import AppNavigator from './src/app/navigations/AppNavigator';
 
 import { NotificationProvider } from './src/app/context/NotificationContext';
@@ -15,12 +15,17 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <StatusBar
+          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+          backgroundColor={isDarkMode ? '#000000' : '#ffffff'}
+        />
         <NotificationProvider>
           <CartProvider>
-            <NavigationContainer>
-              <AppNavigator />
-            </NavigationContainer>
+            <SafeAreaView style={{ flex: 1 }}>
+              <NavigationContainer>
+                <AppNavigator />
+              </NavigationContainer>
+            </SafeAreaView>
           </CartProvider>
         </NotificationProvider>
       </SafeAreaProvider>

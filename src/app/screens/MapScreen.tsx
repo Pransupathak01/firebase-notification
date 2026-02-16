@@ -3,6 +3,8 @@ import { View, StyleSheet, Dimensions, Platform, PermissionsAndroid, ActivityInd
 import { WebView } from 'react-native-webview';
 import Geolocation from '@react-native-community/geolocation';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { usePincode } from '../hooks/usePincode';
+import PincodeDisplay from '../components/PincodeDisplay';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -13,6 +15,9 @@ const MapScreen = () => {
     const [initialLocation, setInitialLocation] = useState<{ latitude: number; longitude: number } | null>(null);
     const [loading, setLoading] = useState(true);
     const webViewRef = useRef<WebView>(null);
+
+    // Use custom hook for pincode logic
+    const { pincode, address, loading: pincodeLoading, fetchPincode } = usePincode();
 
     const checkLocationPermission = async () => {
         if (Platform.OS === 'android') {
@@ -49,6 +54,8 @@ const MapScreen = () => {
             (position) => {
                 const { latitude, longitude } = position.coords;
                 setInitialLocation({ latitude, longitude });
+                // Fetch pincode using the hook
+                fetchPincode(latitude, longitude);
                 setLoading(false);
             },
             (error) => {
@@ -66,10 +73,13 @@ const MapScreen = () => {
                 const { latitude, longitude } = position.coords;
                 // We do NOT update initialLocation here, preventing reload
 
+                // Fetch new pincode using the hook
+                fetchPincode(latitude, longitude);
+
                 if (webViewRef.current) {
                     const script = `
                         if (typeof map !== 'undefined') {
-                            map.flyTo([${latitude}, ${longitude}], 15);
+                            map.flyTo([${latitude}, ${longitude}], 15, { animate: true });
                             if (typeof userMarker !== 'undefined') {
                                 userMarker.setLatLng([${latitude}, ${longitude}]);
                             } else {
@@ -167,6 +177,13 @@ const MapScreen = () => {
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>My Location</Text>
             </View>
+
+            <PincodeDisplay
+                pincode={pincode}
+                address={address}
+                loading={pincodeLoading} // Pass loading state to component
+            />
+
             <WebView
                 ref={webViewRef}
                 originWhitelist={['*']}
