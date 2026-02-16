@@ -1,0 +1,75 @@
+[
+    {
+        "id": "ORD-2026-001",
+        "customerName": "Amit Kumar",
+        "status": "Delivered",
+        "date": "15 Feb 2026",
+        "amount": "₹1,299",
+        "earnings": "₹150",
+        "items": [
+            "Wireless Earbuds",
+            "Phone Case"
+        ],
+        "imageUrl": "https://randomuser.me/api/portraits/men/1.jpg"
+    },
+    {
+        "id": "ORD-2026-002",
+        "customerName": "Sriya Patel",
+        "status": "Processing",
+        "date": "16 Feb 2026",
+        "amount": "₹850",
+        "earnings": "₹85",
+        "items": [
+            "Bluetooth Speaker"
+        ],
+        "imageUrl": "https://randomuser.me/api/portraits/women/2.jpg"
+    },
+    {
+        "id": "ORD-2026-003",
+        "customerName": "Rahul Sharma",
+        "status": "Shipped",
+        "date": "14 Feb 2026",
+        "amount": "₹2,400",
+        "earnings": "₹240",
+        "items": [
+            "Smart Watch Generation 5"
+        ],
+        "imageUrl": "https://randomuser.me/api/portraits/men/3.jpg"
+    },
+    {
+        "id": "ORD-2026-004",
+        "customerName": "Sneha Gupta",
+        "status": "Cancelled",
+        "date": "05 Feb 2026",
+        "amount": "₹450",
+        "earnings": "₹0",
+        "items": [
+            "USB-C Cable"
+        ],
+        "imageUrl": "https://randomuser.me/api/portraits/women/4.jpg"
+    },
+    {
+        "id": "ORD-2026-005",
+        "customerName": "Vikram Singh",
+        "status": "Delivered",
+        "date": "10 Jan 2026",
+        "amount": "₹15,000",
+        "earnings": "₹1,500",
+        "items": [
+            "HD Monitor 24 inch"
+        ],
+        "imageUrl": "https://randomuser.me/api/portraits/men/5.jpg"
+    },
+    {
+        "id": "ORD-2025-006",
+        "customerName": "Anjali Rao",
+        "status": "Delivered",
+        "date": "25 Dec 2025",
+        "amount": "₹3,200",
+        "earnings": "₹320",
+        "items": [
+            "Mechanical Keyboard"
+        ],
+        "imageUrl": "https://randomuser.me/api/portraits/women/6.jpg"
+    }
+]
