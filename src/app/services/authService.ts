@@ -30,6 +30,15 @@ export const loginUser = async (userData: any) => {
     }
 };
 
+export const logoutUser = async (userId: string) => {
+    try {
+        const response = await api.post('/auth/logout', { userId });
+        return response.data;
+    } catch (error: any) {
+        throw error.response?.data || { message: 'Network error or server unreachable' };
+    }
+};
+
 // Storage functions
 export const storeUserSession = async (sessionData: { token: string; user: any }) => {
     try {
@@ -54,7 +63,7 @@ export const getUserSession = async () => {
 
 export const removeUserSession = async () => {
     try {
-        await EncryptedStorage.removeItem('user_session');
+        await EncryptedStorage.clear();
     } catch (error) {
         console.error('Error removing user session:', error);
     }

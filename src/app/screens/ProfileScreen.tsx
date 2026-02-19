@@ -1,15 +1,37 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, Switch, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 
 // Import Reusable Components
 import MenuOption from '../components/MenuOption';
 import SectionHeader from '../components/SectionHeader';
+import { useAuth } from '../context/AuthContext';
 
 const ProfileScreen = () => {
     const navigation = useNavigation<any>();
+    const { user, logout } = useAuth();
     const [isOnline, setIsOnline] = React.useState(true);
+
+    const handleLogout = () => {
+        Alert.alert(
+            "Logout",
+            "Are you sure you want to logout? All your data will be cleared.",
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel"
+                },
+                {
+                    text: "Logout",
+                    onPress: async () => {
+                        await logout();
+                    },
+                    style: "destructive"
+                }
+            ]
+        );
+    };
 
     return (
         <View style={styles.container}>
@@ -30,8 +52,8 @@ const ProfileScreen = () => {
                             <Ionicons name="camera" size={14} color="#FFF" />
                         </View>
                     </View>
-                    <Text style={styles.profileName}>Rajesh Store</Text>
-                    <Text style={styles.profilePhone}>+91 98765 43210</Text>
+                    <Text style={styles.profileName}>{user?.name || user?.username || 'Shop Owner'}</Text>
+                    <Text style={styles.profilePhone}>{user?.phone || user?.email || 'No contact info'}</Text>
                     <View style={styles.statusContainer}>
                         <Text style={styles.statusText}>{isOnline ? 'Online for Business' : 'Offline'}</Text>
                         <Switch
@@ -126,14 +148,14 @@ const ProfileScreen = () => {
                         title="Logout"
                         color="#FF3B30"
                         showChevron={false}
-                        onPress={() => console.log('Logout')}
+                        onPress={handleLogout}
                     />
                 </View>
 
                 <Text style={styles.appVersion}>Version 1.0.5 • Build 2024</Text>
 
-            </ScrollView>
-        </View>
+            </ScrollView >
+        </View >
     );
 };
 

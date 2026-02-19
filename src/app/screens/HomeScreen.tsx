@@ -4,6 +4,9 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import SendNotificationForm from '../components/SendNotificationForm';
 import { useNotifications } from '../context/NotificationContext';
+import { useAuth } from '../context/AuthContext';
+import { getDashboardData } from '../services/dashboardService';
+import { RefreshControl } from 'react-native';
 
 // Import Reusable Components
 import DashboardCard from '../components/DashboardCard';
@@ -13,27 +16,70 @@ const HomeScreen = () => {
     const [isFormVisible, setIsFormVisible] = useState(false);
     const navigation = useNavigation<any>();
     const { notifications } = useNotifications();
+    const { user } = useAuth();
+    const [dashboardData, setDashboardData] = useState<any>(null);
+    const [refreshing, setRefreshing] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    const fetchDashboardData = async () => {
+        try {
+            const data = await getDashboardData();
+            console.log("Dashboard API Response:", JSON.stringify(data, null, 2));
+            if (data && data.success) {
+                setDashboardData(data.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch dashboard data:', error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchDashboardData();
+    }, []);
+
+    const onRefresh = React.useCallback(() => {
+        setRefreshing(true);
+        fetchDashboardData();
+    }, []);
+
+    const stats = dashboardData?.quick_stats || {};
+    const userProfile = dashboardData?.user_profile || {};
+    const earnings = dashboardData?.earnings || {};
+    const banner = dashboardData?.banner || {};
+
+    console.log("Parsed Earnings:", JSON.stringify(earnings, null, 2));
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <View>
                     <Text style={styles.greeting}>Namaste,</Text>
-                    <Text style={styles.username}>Rajesh Store</Text>
-                    <Text style={styles.userRole}>Virtual Dukandar</Text>
+                    <Text style={styles.username}>{userProfile.greeting_name || user?.name || user?.username || 'Shop Owner'}</Text>
+                    <Text style={styles.userRole}>{userProfile.role || user?.role || 'Virtual Dukandar'}</Text>
                 </View>
                 <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('Profile')}>
                     <Ionicons name="person" size={24} color="#007AFF" />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                }
+            >
 
                 {/* Earnings Overview */}
                 <View style={styles.earningsCard}>
                     <View>
                         <Text style={styles.earningsLabel}>Total Earnings</Text>
-                        <Text style={styles.earningsValue}>₹ 45,250</Text>
+                        <Text style={styles.earningsValue}>
+                            {earnings.currency || '₹'} {earnings.total_earnings?.toLocaleString() || '0'}
+                        </Text>
                     </View>
                     <View style={styles.walletIcon}>
                         <Ionicons name="wallet" size={32} color="#FFF" />
@@ -48,36 +94,36 @@ const HomeScreen = () => {
                 <View style={styles.grid}>
                     <DashboardCard
                         title="Active Orders"
-                        value="12"
+                        value={stats.active_orders?.count?.toString() || "0"}
                         icon="cube"
                         color="#6C63FF"
                         onPress={() => navigation.navigate('Orders')}
-                        subtext="+2 today"
+                        subtext={stats.active_orders?.trend_text}
                     />
                     <DashboardCard
                         title="Total Referrals"
-                        value="145"
+                        value={stats.referrals?.total_count?.toString() || "0"}
                         icon="people"
                         color="#FF6584"
                         onPress={() => console.log('Users')}
-                        badge="New"
-                        subtext="8 pending"
+                        badge={stats.referrals?.is_new ? "New" : undefined}
+                        subtext={stats.referrals?.pending_count ? `${stats.referrals.pending_count} pending` : undefined}
                     />
                     <DashboardCard
                         title="Pending Payout"
-                        value="₹ 2,400"
+                        value={`${earnings.currency || '₹'} ${stats.payouts?.pending_amount?.toLocaleString() || '0'}`}
                         icon="cash"
                         color="#32C766"
                         onPress={() => console.log('Payouts')}
                     />
                     <DashboardCard
                         title="Messages"
-                        value="5"
+                        value={stats.messages?.unread_count?.toString() || "0"}
                         icon="chatbubble-ellipses"
                         color="#FFA500"
                         onPress={() => navigation.navigate('Notifications')}
-                        badge={notifications.length > 0 ? notifications.length.toString() : undefined}
-                        subtext="Customer queries"
+                        badge={stats.messages?.unread_count > 0 ? stats.messages.unread_count.toString() : undefined}
+                        subtext={stats.messages?.subtext}
                     />
                 </View>
 
@@ -99,7 +145,10 @@ const HomeScreen = () => {
                         title="My Code"
                         icon="qr-code"
                         color="#6C63FF"
-                        onPress={() => console.log('My Code')}
+                        onPress={() => {
+                            console.log('My Code:', userProfile.referral_code);
+                            // Add share logic here
+                        }}
                     />
                     <QuickAction
                         title="Broadcast"
@@ -109,13 +158,15 @@ const HomeScreen = () => {
                     />
                 </View>
 
-                <View style={styles.banner}>
-                    <View style={styles.bannerContent}>
-                        <Text style={styles.bannerTitle}>Boost Your Sales!</Text>
-                        <Text style={styles.bannerText}>Share 5 more products to unlock Platinum Seller badge.</Text>
+                {banner.title && (
+                    <View style={styles.banner}>
+                        <View style={styles.bannerContent}>
+                            <Text style={styles.bannerTitle}>{banner.title}</Text>
+                            <Text style={styles.bannerText}>{banner.message}</Text>
+                        </View>
+                        <Ionicons name={banner.icon || "trophy"} size={40} color="#FFD700" />
                     </View>
-                    <Ionicons name="trophy" size={40} color="#FFD700" />
-                </View>
+                )}
 
             </ScrollView>
 

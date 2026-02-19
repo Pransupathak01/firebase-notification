@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { storeUserSession, getUserSession, removeUserSession } from '../services/authService';
+import { storeUserSession, getUserSession, removeUserSession, logoutUser } from '../services/authService';
 
 interface AuthContextType {
     user: any;
@@ -57,6 +57,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const logout = async () => {
+        try {
+            if (user) {
+                const userId = user._id || user.id || user.userId || (user.user && (user.user._id || user.user.id || user.user.userId));
+                if (userId) {
+                    await logoutUser(userId);
+                }
+            }
+        } catch (error) {
+            console.error("Logout API failed:", error);
+        }
+
         setUser(null);
         setToken(null);
         await removeUserSession();

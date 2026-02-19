@@ -13,7 +13,8 @@ import { registerUser } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 
 const RegisterScreen = () => {
-    const [username, setUsername] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -21,10 +22,12 @@ const RegisterScreen = () => {
     const { register } = useAuth();
 
     const handleRegister = async () => {
-        if (!username || !email || !password) {
+        if (!firstName || !lastName || !email || !password) {
             Alert.alert('Error', 'Please fill in all fields');
             return;
         }
+
+        const username = `${firstName} ${lastName}`.trim();
 
         setLoading(true);
         try {
@@ -52,10 +55,17 @@ const RegisterScreen = () => {
             <View style={styles.inputContainer}>
                 <TextInput
                     style={styles.input}
-                    placeholder="Username"
+                    placeholder="First Name"
                     placeholderTextColor="#888"
-                    value={username}
-                    onChangeText={setUsername}
+                    value={firstName}
+                    onChangeText={setFirstName}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Last Name"
+                    placeholderTextColor="#888"
+                    value={lastName}
+                    onChangeText={setLastName}
                 />
                 <TextInput
                     style={styles.input}
