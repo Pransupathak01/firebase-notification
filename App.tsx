@@ -6,6 +6,7 @@ import AppNavigator from './src/app/navigations/AppNavigator';
 
 import { NotificationProvider } from './src/app/context/NotificationContext';
 import { CartProvider } from './src/app/context/CartContext';
+import { AuthProvider } from './src/app/context/AuthContext';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -19,15 +20,17 @@ function App() {
           barStyle={isDarkMode ? 'light-content' : 'dark-content'}
           backgroundColor={isDarkMode ? '#000000' : '#ffffff'}
         />
-        <NotificationProvider>
-          <CartProvider>
-            <SafeAreaView style={{ flex: 1 }}>
-              <NavigationContainer>
-                <AppNavigator />
-              </NavigationContainer>
-            </SafeAreaView>
-          </CartProvider>
-        </NotificationProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <CartProvider>
+              <SafeAreaView style={{ flex: 1 }}>
+                <NavigationContainer>
+                  <AppNavigator />
+                </NavigationContainer>
+              </SafeAreaView>
+            </CartProvider>
+          </NotificationProvider>
+        </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
