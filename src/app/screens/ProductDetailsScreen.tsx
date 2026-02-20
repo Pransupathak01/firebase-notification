@@ -53,18 +53,20 @@ const ProductDetailsScreen = () => {
                     >
                         <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
                     </TouchableOpacity>
-                    <ZoomGallery images={product.images} />
+                    <ZoomGallery images={product.images || (product.imageUrl ? [product.imageUrl] : [])} />
                 </View>
 
                 <View style={styles.content}>
                     <View style={styles.headerRow}>
                         <Text style={styles.title}>{product.name}</Text>
-                        <Text style={styles.price}>{product.price}</Text>
+                        <Text style={styles.price}>
+                            {typeof product.price === 'number' ? `₹${product.price.toLocaleString()}` : product.price}
+                        </Text>
                     </View>
 
                     <View style={styles.ratingContainer}>
                         <Ionicons name="star" size={16} color="#FFD700" />
-                        <Text style={styles.ratingText}>4.8 (120 reviews)</Text>
+                        <Text style={styles.ratingText}>{product.rating || 4.8} ({product.reviews || '120'} reviews)</Text>
                     </View>
 
                     <Text style={styles.sectionTitle}>Description</Text>

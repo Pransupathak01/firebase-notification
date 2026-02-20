@@ -11,10 +11,12 @@ const CartScreen = () => {
 
     const renderItem = ({ item }: { item: any }) => (
         <View style={styles.cartItem}>
-            <Image source={{ uri: item.image }} style={styles.itemImage} />
+            <Image source={{ uri: item.imageUrl || item.image || (item.images && item.images[0]) }} style={styles.itemImage} />
             <View style={styles.itemDetails}>
                 <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemPrice}>{item.price}</Text>
+                <Text style={styles.itemPrice}>
+                    {typeof item.price === 'number' ? `₹${item.price.toLocaleString()}` : item.price}
+                </Text>
                 <View style={styles.quantityContainer}>
                     <TouchableOpacity style={styles.qtyButton} onPress={() => updateQuantity(item.id, item.quantity - 1)}>
                         <Ionicons name="remove" size={16} color="#333" />
@@ -59,7 +61,7 @@ const CartScreen = () => {
                     <View style={styles.footer}>
                         <View style={styles.totalContainer}>
                             <Text style={styles.totalLabel}>Total</Text>
-                            <Text style={styles.totalPrice}>${totalAmount.toFixed(2)}</Text>
+                            <Text style={styles.totalPrice}>₹{totalAmount.toLocaleString()}</Text>
                         </View>
                         <TouchableOpacity style={styles.checkoutButton} onPress={() => { /* clearCart(); alert('Checkout'); */ }}>
                             <Text style={styles.checkoutText}>Checkout</Text>

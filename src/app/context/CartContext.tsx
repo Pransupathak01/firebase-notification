@@ -3,8 +3,14 @@ import React, { createContext, useState, useContext, ReactNode } from 'react';
 interface Product {
     id: string;
     name: string;
-    price: string;
-    image: string;
+    price: number | string;
+    image?: string;
+    imageUrl?: string;
+    images?: string[];
+    mrp?: number;
+    discount?: number;
+    youEarn?: number;
+    brand?: string;
 }
 
 interface CartItem extends Product {
@@ -60,7 +66,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const totalAmount = cartItems.reduce((sum, item) => {
-        const price = parseFloat(item.price.replace(/[^0-9.]/g, ''));
+        let price: number;
+        if (typeof item.price === 'number') {
+            price = item.price;
+        } else {
+            price = parseFloat(String(item.price).replace(/[^0-9.]/g, '')) || 0;
+        }
         return sum + price * item.quantity;
     }, 0);
 
