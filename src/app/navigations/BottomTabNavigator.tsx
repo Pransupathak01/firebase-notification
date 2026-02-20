@@ -1,7 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/HomeScreen';
-import ProfileScreen from '../screens/ProfileScreen';
 import ProductScreen from '../screens/ProductScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import MapScreen from '../screens/MapScreen';
@@ -20,8 +19,6 @@ const BottomTabNavigator = () => {
 
                     if (route.name === 'Home') {
                         iconName = focused ? 'home' : 'home-outline';
-                    } else if (route.name === 'Profile') {
-                        iconName = focused ? 'person' : 'person-outline';
                     } else if (route.name === 'Product') {
                         iconName = focused ? 'cube' : 'cube-outline';
                     } else if (route.name === 'Notifications') {
@@ -42,12 +39,12 @@ const BottomTabNavigator = () => {
             })}
         >
             <Tab.Screen name="Home" component={HomeScreen} />
-            <Tab.Screen name="Product" component={ProductScreen} />
-            <Tab.Screen name="Map" component={MapScreen} />
-            <Tab.Screen name="Chat" component={ChatScreen} />
+            {/* <Tab.Screen name="Map" component={MapScreen} /> */}
             <Tab.Screen name="Orders" component={OrdersScreen} />
+            <Tab.Screen name="Product" component={ProductScreen} />
             <Tab.Screen name="Notifications" component={NotificationsScreen} />
-            <Tab.Screen name="Profile" component={ProfileScreen} />
+            <Tab.Screen name="Chat" component={ChatScreen} />
+
         </Tab.Navigator>
     );
 };

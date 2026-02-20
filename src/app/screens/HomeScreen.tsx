@@ -11,9 +11,12 @@ import { RefreshControl } from 'react-native';
 // Import Reusable Components
 import DashboardCard from '../components/DashboardCard';
 import QuickAction from '../components/QuickAction';
+import AddCustomerModal from '../components/AddCustomerModal';
+import { Share, Alert } from 'react-native';
 
 const HomeScreen = () => {
     const [isFormVisible, setIsFormVisible] = useState(false);
+    const [isAddCustomerVisible, setIsAddCustomerVisible] = useState(false);
     const navigation = useNavigation<any>();
     const { notifications } = useNotifications();
     const { user } = useAuth();
@@ -51,6 +54,41 @@ const HomeScreen = () => {
     const banner = dashboardData?.banner || {};
 
     console.log("Parsed Earnings:", JSON.stringify(earnings, null, 2));
+
+    const onShareCatalog = async () => {
+        try {
+            const result = await Share.share({
+                message: `Check out my store on SyncTalk! https://synctalk.in/shop/${user?.username || 'user'}`,
+            });
+            if (result.action === Share.sharedAction) {
+                if (result.activityType) {
+                    // shared with activity type of result.activityType
+                } else {
+                    // shared
+                }
+            } else if (result.action === Share.dismissedAction) {
+                // dismissed
+            }
+        } catch (error: any) {
+            Alert.alert(error.message);
+        }
+    };
+
+    const onShareCode = async () => {
+        try {
+            await Share.share({
+                message: `Use my referral code ${userProfile.referral_code || 'CODE123'} to get amazing discounts!`,
+            });
+        } catch (error: any) {
+            Alert.alert(error.message);
+        }
+    };
+
+    const handleAddCustomer = (name: string, phone: string) => {
+        // Logic to add customer (e.g. API call)
+        console.log(`Adding customer: ${name}, ${phone}`);
+        Alert.alert("Success", "Customer added successfully!");
+    };
 
     return (
         <View style={styles.container}>
@@ -133,22 +171,19 @@ const HomeScreen = () => {
                         title="Share Catalog"
                         icon="share-social"
                         color="#007AFF"
-                        onPress={() => navigation.navigate('Product')}
+                        onPress={onShareCatalog}
                     />
                     <QuickAction
                         title="Add Customer"
                         icon="person-add"
                         color="#32C766"
-                        onPress={() => console.log('Add Customer')}
+                        onPress={() => setIsAddCustomerVisible(true)}
                     />
                     <QuickAction
                         title="My Code"
                         icon="qr-code"
                         color="#6C63FF"
-                        onPress={() => {
-                            console.log('My Code:', userProfile.referral_code);
-                            // Add share logic here
-                        }}
+                        onPress={onShareCode}
                     />
                     <QuickAction
                         title="Broadcast"
@@ -173,6 +208,12 @@ const HomeScreen = () => {
             <SendNotificationForm
                 visible={isFormVisible}
                 onClose={() => setIsFormVisible(false)}
+            />
+
+            <AddCustomerModal
+                visible={isAddCustomerVisible}
+                onClose={() => setIsAddCustomerVisible(false)}
+                onAdd={handleAddCustomer}
             />
         </View>
     );

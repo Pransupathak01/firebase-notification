@@ -6,12 +6,14 @@ import CartScreen from '../screens/CartScreen';
 import ProductDetailsScreen from '../screens/ProductDetailsScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import { useAuth } from '../context/AuthContext';
 
 export type RootStackParamList = {
     MainTabs: undefined;
     Cart: undefined;
     ProductDetails: { product: any };
+    Profile: undefined;
     Login: undefined;
     Register: undefined;
 };
@@ -37,6 +39,7 @@ const AppNavigator = () => {
                     <Stack.Screen name="MainTabs" component={BottomTabNavigator} />
                     <Stack.Screen name="Cart" component={CartScreen} />
                     <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
+                    <Stack.Screen name="Profile" component={ProfileScreen} />
                 </>
             ) : (
                 // Auth Stack

@@ -1,85 +1,103 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import ordersData from '../data/orders.json';
+import { getOrders } from '../services/ordersService';
 
-const FILTER_OPTIONS = ['All', 'This Week', 'This Month', 'Last Month', 'This Year'];
+const FILTER_OPTIONS = ['Today', 'This Week', 'Last Week', 'This Month', 'Last Month'];
 
 const OrdersScreen = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedFilter, setSelectedFilter] = useState('This Month');
-    const [filteredOrders, setFilteredOrders] = useState(ordersData);
+    const [selectedFilter, setSelectedFilter] = useState('Today');
+    const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
+    const [allOrders, setAllOrders] = useState<any[]>([]); // Store fetched orders
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [summary, setSummary] = useState<any>({ total_orders: 0, total_earnings: 0 });
+
+    const fetchOrders = async () => {
+        try {
+            setLoading(true);
+            const response = await getOrders(selectedFilter);
+            console.log("Order API Response:", JSON.stringify(response, null, 2));
+
+            if (response && response.success && response.data) {
+                const orders = response.data.orders || [];
+                setAllOrders(orders);
+                setFilteredOrders(orders);
+
+                // If backend provides summary use it, otherwise calculate
+                if (response.data.summary) {
+                    setSummary(response.data.summary);
+                } else {
+                    // Fallback calculation
+                    const total = orders.reduce((sum: number, item: any) => sum + (item.earnings || 0), 0);
+                    setSummary({
+                        total_orders: orders.length,
+                        total_earnings: total
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch orders:', error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
 
     useEffect(() => {
-        applyFilters();
-    }, [searchQuery, selectedFilter]);
+        fetchOrders();
+    }, [selectedFilter]);
 
-    const parseDate = (dateString: string) => {
-        // Expected format: "15 Feb 2026"
-        return new Date(dateString);
-    };
+    // Request new fetch when filter changes
+    // But verify if search logic should be client side or server side. Usually search is client side if list is small.
+    // The previous logic had a client-side search. I'll keep it client-side for the fetched list.
 
-    const isDateInFilter = (dateStr: string, filter: string) => {
-        const orderDate = parseDate(dateStr);
-        const now = new Date();
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-        switch (filter) {
-            case 'All':
-                return true;
-            case 'This Week':
-                const firstDayOfWeek = new Date(startOfToday);
-                firstDayOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay()); // Sunday as start
-                return orderDate >= firstDayOfWeek;
-            case 'This Month':
-                return orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear();
-            case 'Last Month':
-                const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                return orderDate.getMonth() === lastMonth.getMonth() && orderDate.getFullYear() === lastMonth.getFullYear();
-            case 'This Year':
-                return orderDate.getFullYear() === now.getFullYear();
-            default:
-                return true;
-        }
-    };
-
-    const applyFilters = () => {
-        let result = ordersData;
-
-        // Apply Search
+    useEffect(() => {
         if (searchQuery) {
             const query = searchQuery.toUpperCase();
-            result = result.filter(item => {
-                const itemData = item.id.toUpperCase() + item.customerName.toUpperCase();
+            const result = allOrders.filter(item => {
+                const itemData = (item.id + item.customerName).toUpperCase();
                 return itemData.indexOf(query) > -1;
             });
+            setFilteredOrders(result);
+        } else {
+            setFilteredOrders(allOrders);
         }
+    }, [searchQuery, allOrders]);
 
-        // Apply Date Filter
-        result = result.filter(item => isDateInFilter(item.date, selectedFilter));
-
-        setFilteredOrders(result);
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchOrders();
     };
-
-    const calculateTotalEarnings = () => {
-        return filteredOrders.reduce((total, item) => {
-            // Remove '₹' and ',' then parse
-            const earningValue = parseFloat(item.earnings.replace(/[₹,]/g, '')) || 0;
-            // Only count earnings for non-cancelled/returned orders if needed, but assuming data is correct
-            return total + earningValue;
-        }, 0);
-    };
-
-    const totalEarnings = calculateTotalEarnings();
 
     const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
+        switch (status?.toLowerCase()) {
             case 'delivered': return '#32C766';
             case 'processing': return '#FFA500';
             case 'shipped': return '#007AFF';
             case 'cancelled': return '#FF3B30';
             default: return '#888';
         }
+    };
+
+    const formatDate = (dateString: string) => {
+        if (!dateString) return '';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB', {
+                day: '2-digit', month: 'short', year: 'numeric'
+            });
+        } catch (e) {
+            return dateString;
+        }
+    };
+
+    const formatCurrency = (amount: any) => {
+        if (amount === undefined || amount === null) return '₹0';
+        // Handle if amount comes as string with symbols already
+        if (typeof amount === 'string' && amount.includes('₹')) return amount;
+        return `₹${Number(amount).toLocaleString()}`;
     };
 
     const renderOrderItem = ({ item }: { item: any }) => (
@@ -102,19 +120,21 @@ const OrdersScreen = () => {
             <View style={styles.cardBody}>
                 <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Items:</Text>
-                    <Text style={styles.detailValue} numberOfLines={1}>{item.items.join(', ')}</Text>
+                    <Text style={styles.detailValue} numberOfLines={1}>
+                        {Array.isArray(item.items) ? item.items.join(', ') : item.items}
+                    </Text>
                 </View>
                 <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Date:</Text>
-                    <Text style={styles.detailValue}>{item.date}</Text>
+                    <Text style={styles.detailValue}>{formatDate(item.date)}</Text>
                 </View>
                 <View style={[styles.detailRow, { marginTop: 8 }]}>
                     <Text style={styles.totalLabel}>Total Amount</Text>
-                    <Text style={styles.totalValue}>{item.amount}</Text>
+                    <Text style={styles.totalValue}>{formatCurrency(item.amount)}</Text>
                 </View>
                 <View style={[styles.detailRow, styles.earningsRow]}>
                     <Text style={styles.earningsLabel}>My Earnings</Text>
-                    <Text style={styles.earningsValue}>{item.earnings}</Text>
+                    <Text style={styles.earningsValue}>{formatCurrency(item.earnings)}</Text>
                 </View>
             </View>
         </View>
@@ -156,28 +176,37 @@ const OrdersScreen = () => {
             <View style={styles.summaryContainer}>
                 <View style={styles.summaryItem}>
                     <Text style={styles.summaryLabel}>Orders</Text>
-                    <Text style={styles.summaryValue}>{filteredOrders.length}</Text>
+                    <Text style={styles.summaryValue}>{summary.total_orders || filteredOrders.length}</Text>
                 </View>
                 <View style={styles.summaryDivider} />
                 <View style={styles.summaryItem}>
                     <Text style={styles.summaryLabel}>Total Earnings</Text>
-                    <Text style={styles.summaryValueTotal}>₹{totalEarnings.toLocaleString()}</Text>
+                    <Text style={styles.summaryValueTotal}>{formatCurrency(summary.total_earnings || 0)}</Text>
                 </View>
             </View>
 
-            <FlatList
-                data={filteredOrders}
-                renderItem={renderOrderItem}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Ionicons name="documents-outline" size={64} color="#CCC" />
-                        <Text style={styles.emptyText}>No orders found for {selectedFilter}</Text>
-                    </View>
-                }
-            />
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#007AFF" />
+                </View>
+            ) : (
+                <FlatList
+                    data={filteredOrders}
+                    renderItem={renderOrderItem}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="documents-outline" size={64} color="#CCC" />
+                            <Text style={styles.emptyText}>No orders found for {selectedFilter}</Text>
+                        </View>
+                    }
+                />
+            )}
         </View>
     );
 };
@@ -402,6 +431,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#999',
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    }
 });
 
 export default OrdersScreen;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, Switch, Alert, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 
@@ -36,7 +36,11 @@ const ProfileScreen = () => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={24} color="#333" />
+                </TouchableOpacity>
                 <Text style={styles.headerTitle}>My Profile</Text>
+                <View style={{ width: 24 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -167,10 +171,15 @@ const styles = StyleSheet.create({
     header: {
         height: 60,
         backgroundColor: '#FFFFFF',
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        paddingHorizontal: 16,
+        justifyContent: 'space-between',
         borderBottomWidth: 1,
         borderBottomColor: '#F0F0F0',
+    },
+    backButton: {
+        padding: 4,
     },
     headerTitle: {
         fontSize: 18,
