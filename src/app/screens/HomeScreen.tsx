@@ -143,7 +143,7 @@ const HomeScreen = () => {
                         value={stats.referrals?.total_count?.toString() || "0"}
                         icon="people"
                         color="#FF6584"
-                        onPress={() => console.log('Users')}
+                        onPress={() => navigation.navigate('ReferralContacts')}
                         badge={stats.referrals?.is_new ? "New" : undefined}
                         subtext={stats.referrals?.pending_count ? `${stats.referrals.pending_count} pending` : undefined}
                     />

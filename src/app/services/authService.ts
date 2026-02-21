@@ -11,6 +11,24 @@ const api = axios.create({
     },
 });
 
+// Add interceptor to attach token to requests
+api.interceptors.request.use(
+    async (config) => {
+        try {
+            const session = await getUserSession();
+            if (session && session.token) {
+                config.headers.Authorization = `Bearer ${session.token}`;
+            }
+        } catch (error) {
+            console.error('Error in auth interceptor:', error);
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
 // Auth functions
 export const registerUser = async (userData: any) => {
     try {
@@ -33,6 +51,15 @@ export const loginUser = async (userData: any) => {
 export const logoutUser = async (userId: string) => {
     try {
         const response = await api.post('/auth/logout', { userId });
+        return response.data;
+    } catch (error: any) {
+        throw error.response?.data || { message: 'Network error or server unreachable' };
+    }
+};
+
+export const getUserProfile = async () => {
+    try {
+        const response = await api.get('/users/profile');
         return response.data;
     } catch (error: any) {
         throw error.response?.data || { message: 'Network error or server unreachable' };

@@ -10,6 +10,8 @@ import { AuthProvider } from './src/app/context/AuthContext';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { SocketManager } from './src/app/components/SocketManager';
+
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
@@ -21,6 +23,7 @@ function App() {
           backgroundColor={isDarkMode ? '#000000' : '#ffffff'}
         />
         <AuthProvider>
+          <SocketManager />
           <NotificationProvider>
             <CartProvider>
               <SafeAreaView style={{ flex: 1 }}>

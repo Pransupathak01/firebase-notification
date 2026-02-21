@@ -1,188 +1,361 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
-import io, { Socket } from 'socket.io-client';
-import { useAuth } from '../context/AuthContext';
-import { AppConfig } from '../config/api';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import {
+    View,
+    Text,
+    TextInput,
+    FlatList,
+    TouchableOpacity,
+    StyleSheet,
+    KeyboardAvoidingView,
+    Platform,
+    ActivityIndicator,
+} from 'react-native';
+import { getSocket, connectSocket } from '../services/socketService';
+import { Socket } from 'socket.io-client';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
-// 1. Initialize Socket
-const SOCKET_URL = AppConfig.SOCKET_URL;
+interface Message {
+    _id: string;
+    text: string;
+    sender: { _id: string; username: string; avatar?: string };
+    createdAt: string;
+    messageType: string;
+}
 
-export default function ChatScreen() {
-    const { user } = useAuth();
-    const [messages, setMessages] = useState<any[]>([]);
-    const [currentMessage, setCurrentMessage] = useState("");
-    const [isTyping, setIsTyping] = useState(false);
-
-    // Refs
+const ChatScreen = ({ route, navigation }: any) => {
+    const { roomId, currentUserId, roomName } = route.params;
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [inputText, setInputText] = useState('');
+    const [isTyping, setIsTyping] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [hasMore, setHasMore] = useState(false);
     const socketRef = useRef<Socket | null>(null);
     const flatListRef = useRef<FlatList>(null);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Hardcoded for demo - usually comes from navigation user/auth
-    const roomId = "room_1";
-    // Dynamic userId from AuthContext
-    const userId = user?._id || user?.id; // Handle both _id (mongo) and id possibilities if inconsistent
-    const username = user?.username || "Anonymous";
-
-    console.log("ChatScreen Rendered. User:", user);
-    console.log("ChatScreen UserId:", userId);
-
+    // ─── Step 1: Connect socket & join room ───
     useEffect(() => {
-        if (!userId) {
-            console.log("Waiting for user ID...");
-            return;
-        }
+        const init = async () => {
+            let socket = getSocket();
+            if (!socket?.connected) {
+                socket = await connectSocket();
+            }
+            socketRef.current = socket;
 
-        // 2. Connect to Socket
-        console.log("Connecting to socket at:", SOCKET_URL, "with userId:", userId);
-        socketRef.current = io(SOCKET_URL);
+            // Step 2: Receive socket ID
+            socket.on('connected', (data: any) => {
+                console.log('My socket ID:', data.socketId);
+            });
 
-        // 3. Join logic
-        socketRef.current.on("connect", () => {
-            console.log("Connected to server. Socket ID:", socketRef.current?.id);
-            socketRef.current?.emit("join_room", roomId);
-        });
+            // Step 3: Join the room
+            socket.emit('join_room', { roomId });
 
-        socketRef.current.on("connect_error", (err) => {
-            console.error("Socket Connection Error:", err.message);
-        });
+            // Receive initial messages
+            socket.on('load_messages', (data: any) => {
+                setMessages(data.messages);
+                setHasMore(data.hasMore);
+                setLoading(false);
+            });
 
-        // 4. Listeners matching your backend API
+            // Step 6: Receive new messages in real-time
+            socket.on('receive_message', (message: Message) => {
+                setMessages((prev) => [...prev, message]);
+                // Mark as read
+                socket?.emit('mark_read', { roomId });
+            });
 
-        // Load history
-        socketRef.current.on("load_messages", (history) => {
-            console.log("Loaded history:", history.length, "messages");
-            setMessages(history);
-        });
+            // Typing indicators
+            socket.on('user_typing', (data: any) => {
+                setIsTyping(data.username);
+            });
 
-        // Receive new message
-        socketRef.current.on("receive_message", (msg) => {
-            console.log("Received message:", msg);
-            setMessages((prev) => [...prev, msg]);
-            // Scroll to bottom when new message arrives
-            setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-        });
+            socket.on('user_stop_typing', () => {
+                setIsTyping(null);
+            });
 
-        // Typing indicators
-        socketRef.current.on("display_typing", (id) => {
-            if (id !== socketRef.current?.id) setIsTyping(true);
-        });
+            // Older messages (pagination)
+            socket.on('older_messages', (data: any) => {
+                setMessages((prev) => [...data.messages, ...prev]);
+                setHasMore(data.hasMore);
+            });
 
-        socketRef.current.on("hide_typing", () => {
-            setIsTyping(false);
-        });
+            // Errors
+            socket.on('error', (err: any) => {
+                console.error('Socket error:', err.message);
+            });
+        };
 
-        // Cleanup on unmount
+        init();
+
         return () => {
-            console.log("Disconnecting socket...");
-            socketRef.current?.disconnect();
+            // Leave room on unmount
+            socketRef.current?.emit('leave_room', { roomId });
+            socketRef.current?.off('connected');
+            socketRef.current?.off('load_messages');
+            socketRef.current?.off('receive_message');
+            socketRef.current?.off('user_typing');
+            socketRef.current?.off('user_stop_typing');
+            socketRef.current?.off('older_messages');
+            socketRef.current?.off('error');
         };
-    }, [userId]);
+    }, [roomId]);
 
+    // ─── Step 4: Send message ───
     const sendMessage = () => {
-        if (currentMessage.trim().length === 0) return;
-        if (!userId) {
-            console.error("Cannot send message: User ID is missing");
-            return;
-        }
+        if (!inputText.trim() || !socketRef.current) return;
 
-        const payload = {
+        socketRef.current.emit('send_message', {
             roomId,
-            sender: userId, // Use dynamic ID
-            username: username, // Optionally send username if backend supports it
-            text: currentMessage
-        };
-
-        console.log("Sending message payload:", payload);
-
-        // Emit event
-        socketRef.current?.emit("send_message", payload);
-        socketRef.current?.emit("stop_typing", roomId);
-        setCurrentMessage("");
+            text: inputText.trim(),
+        });
+        setInputText('');
+        socketRef.current.emit('stop_typing', { roomId });
     };
 
+    // Handle typing indicator
     const handleTyping = (text: string) => {
-        setCurrentMessage(text);
-        if (text.length > 0) {
-            socketRef.current?.emit("typing", roomId);
-        } else {
-            socketRef.current?.emit("stop_typing", roomId);
-        }
+        setInputText(text);
+        if (!socketRef.current) return;
+
+        socketRef.current.emit('typing', { roomId });
+
+        // Clear previous timeout
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+        // Stop typing after 2 seconds of inactivity
+        typingTimeoutRef.current = setTimeout(() => {
+            socketRef.current?.emit('stop_typing', { roomId });
+        }, 2000);
     };
 
-    const renderItem = ({ item }: { item: any }) => {
-        const isMyMessage = item.sender === userId;
+    // Load older messages
+    const loadMore = () => {
+        if (!hasMore || !socketRef.current || messages.length === 0) return;
+        socketRef.current.emit('load_more_messages', {
+            roomId,
+            before: messages[0].createdAt,
+        });
+    };
+
+    // ─── Render message bubble ───
+    const renderMessage = ({ item }: { item: Message }) => {
+        const isMe = item.sender._id === currentUserId;
         return (
-            <View style={[styles.msgContainer, isMyMessage ? styles.myMsg : styles.otherMsg]}>
-                <Text style={styles.msgSender}>{item.username || item.sender}</Text>
-                <Text style={[styles.msgText, isMyMessage ? styles.myMsgText : styles.otherMsgText]}>{item.text}</Text>
+            <View style={[styles.messageBubble, isMe ? styles.myMessage : styles.otherMessage]}>
+                {!isMe && <Text style={styles.senderName}>{item.sender.username}</Text>}
+                <Text style={[styles.messageText, isMe && styles.myMessageText]}>{item.text}</Text>
+                <Text style={[styles.timestamp, isMe && styles.myTimestamp]}>
+                    {new Date(item.createdAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    })}
+                </Text>
             </View>
         );
     };
 
-    if (!user) {
+    if (loading) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#007AFF" />
-                <Text>Loading User Data...</Text>
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6C63FF" />
             </View>
         );
     }
 
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={90}
         >
+            {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerText}>Chat Room: {roomId}</Text>
-                <Text style={styles.subHeaderText}>Logged in as: {username}</Text>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={24} color="#333" />
+                </TouchableOpacity>
+                <View style={styles.headerInfo}>
+                    <View style={styles.headerAvatar}>
+                        <Text style={styles.headerAvatarText}>
+                            {(roomName || 'C')[0].toUpperCase()}
+                        </Text>
+                    </View>
+                    <View>
+                        <Text style={styles.headerTitle}>{roomName || 'Chat'}</Text>
+                        {isTyping && (
+                            <Text style={styles.headerSubtitle}>typing...</Text>
+                        )}
+                    </View>
+                </View>
             </View>
 
             <FlatList
                 ref={flatListRef}
                 data={messages}
-                renderItem={renderItem}
-                keyExtractor={(item, index) => index.toString()}
-                contentContainerStyle={styles.listContent}
-                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                keyExtractor={(item) => item._id}
+                renderItem={renderMessage}
+                contentContainerStyle={styles.messagesList}
+                onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
+                ListHeaderComponent={
+                    hasMore ? (
+                        <TouchableOpacity onPress={loadMore} style={styles.loadMoreBtn}>
+                            <Text style={styles.loadMoreText}>Load older messages</Text>
+                        </TouchableOpacity>
+                    ) : null
+                }
             />
 
             {isTyping && (
-                <Text style={styles.typingText}>Someone is typing...</Text>
+                <Text style={styles.typingIndicator}>{isTyping} is typing...</Text>
             )}
 
             <View style={styles.inputContainer}>
                 <TextInput
                     style={styles.input}
-                    value={currentMessage}
+                    value={inputText}
                     onChangeText={handleTyping}
                     placeholder="Type a message..."
-                    placeholderTextColor="#888"
+                    placeholderTextColor="#999"
+                    multiline
                 />
-                <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-                    <Text style={styles.sendButtonText}>Send</Text>
+                <TouchableOpacity
+                    style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+                    onPress={sendMessage}
+                    disabled={!inputText.trim()}
+                >
+                    <Ionicons
+                        name="send"
+                        size={20}
+                        color="#FFF"
+                    />
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
     );
-}
+};
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f5f5' },
-    header: { padding: 20, paddingTop: 50, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#ddd' },
-    headerText: { fontSize: 18, fontWeight: 'bold' },
-    subHeaderText: { fontSize: 12, color: '#888' },
-    listContent: { padding: 10, paddingBottom: 20 },
-    msgContainer: { maxWidth: '80%', padding: 10, borderRadius: 10, marginBottom: 10 },
-    myMsg: { alignSelf: 'flex-end', backgroundColor: '#007AFF' },
-    otherMsg: { alignSelf: 'flex-start', backgroundColor: '#E5E5EA' },
-    msgSender: { fontSize: 10, color: '#999', marginBottom: 2 }, // Changed color to visible gray
-    msgText: { fontSize: 16 }, // Changed to black for visibility
-    myMsgText: { color: '#fff' },
-    otherMsgText: { color: '#000' },
-    typingText: { marginLeft: 20, marginBottom: 5, color: '#888', fontStyle: 'italic' },
-    inputContainer: { flexDirection: 'row', padding: 10, backgroundColor: '#fff', alignItems: 'center' },
-    input: { flex: 1, height: 40, borderColor: '#ddd', borderWidth: 1, borderRadius: 20, paddingHorizontal: 15, backgroundColor: '#f9f9f9', color: '#000' },
-    sendButton: { marginLeft: 10, padding: 10, backgroundColor: '#007AFF', borderRadius: 20 },
-    sendButtonText: { color: '#fff', fontWeight: 'bold' }
+    container: { flex: 1, backgroundColor: '#F5F5F5' },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+    // Header
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFF',
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#EEE',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    backButton: {
+        padding: 4,
+        marginRight: 8,
+    },
+    headerInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    headerAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#6C63FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    headerAvatarText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    headerTitle: {
+        fontSize: 17,
+        fontWeight: '600',
+        color: '#333',
+    },
+    headerSubtitle: {
+        fontSize: 12,
+        color: '#6C63FF',
+        fontStyle: 'italic',
+    },
+
+    // Messages
+    messagesList: { paddingHorizontal: 16, paddingVertical: 8 },
+    messageBubble: {
+        maxWidth: '75%',
+        padding: 12,
+        borderRadius: 16,
+        marginVertical: 4,
+    },
+    myMessage: {
+        alignSelf: 'flex-end',
+        backgroundColor: '#6C63FF',
+        borderBottomRightRadius: 4,
+    },
+    otherMessage: {
+        alignSelf: 'flex-start',
+        backgroundColor: '#FFF',
+        borderBottomLeftRadius: 4,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    senderName: { fontSize: 12, fontWeight: '700', color: '#6C63FF', marginBottom: 2 },
+    messageText: { fontSize: 15, color: '#333' },
+    myMessageText: { color: '#FFF' },
+    timestamp: { fontSize: 10, color: '#999', marginTop: 4, alignSelf: 'flex-end' },
+    myTimestamp: { color: 'rgba(255,255,255,0.7)' },
+    typingIndicator: {
+        fontSize: 12,
+        color: '#999',
+        fontStyle: 'italic',
+        paddingHorizontal: 20,
+        paddingBottom: 4,
+    },
+
+    // Input
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        backgroundColor: '#FFF',
+        borderTopWidth: 1,
+        borderTopColor: '#EEE',
+    },
+    input: {
+        flex: 1,
+        backgroundColor: '#F0F0F0',
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        fontSize: 15,
+        maxHeight: 100,
+        color: '#333',
+    },
+    sendButton: {
+        marginLeft: 8,
+        backgroundColor: '#6C63FF',
+        borderRadius: 22,
+        width: 44,
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    sendButtonDisabled: { backgroundColor: '#CCC' },
+
+    // Load more
+    loadMoreBtn: { alignSelf: 'center', paddingVertical: 8 },
+    loadMoreText: { color: '#6C63FF', fontSize: 13 },
 });
+
+export default ChatScreen;

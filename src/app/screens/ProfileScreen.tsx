@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, Switch, Alert, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, ScrollView, Switch, Alert, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 
@@ -7,21 +7,54 @@ import { useNavigation } from '@react-navigation/native';
 import MenuOption from '../components/MenuOption';
 import SectionHeader from '../components/SectionHeader';
 import { useAuth } from '../context/AuthContext';
+import { getUserProfile } from '../services/authService';
 
 const ProfileScreen = () => {
     const navigation = useNavigation<any>();
-    const { user, logout } = useAuth();
-    const [isOnline, setIsOnline] = React.useState(true);
+    const { user: authUser, logout } = useAuth();
+    const [profileData, setProfileData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [isOnline, setIsOnline] = useState(true);
+
+    const fetchProfile = async () => {
+        try {
+            console.log('[ProfileScreen] Fetching profile...');
+            const data = await getUserProfile();
+            console.log('[ProfileScreen] Profile API Response:', JSON.stringify(data, null, 2));
+
+            // The API returns the user object directly based on logs
+            if (data && (data._id || data.username)) {
+                setProfileData(data);
+                setIsOnline(data.status === 'online');
+            } else if (data.success && data.data) {
+                // Fallback for success/data wrapper
+                setProfileData(data.data);
+                setIsOnline(data.data.status === 'online');
+            }
+        } catch (error) {
+            console.error('Failed to fetch profile:', error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchProfile();
+    }, []);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchProfile();
+    };
 
     const handleLogout = () => {
         Alert.alert(
             "Logout",
             "Are you sure you want to logout? All your data will be cleared.",
             [
-                {
-                    text: "Cancel",
-                    style: "cancel"
-                },
+                { text: "Cancel", style: "cancel" },
                 {
                     text: "Logout",
                     onPress: async () => {
@@ -31,6 +64,29 @@ const ProfileScreen = () => {
                 }
             ]
         );
+    };
+
+    if (loading && !refreshing) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6C63FF" />
+            </View>
+        );
+    }
+
+    const userData = profileData || authUser;
+
+    // Map data based on the API response structure provided
+    const stats = {
+        rating: userData?.rating || '4.8', // Placeholder if not in API
+        total_referrals: userData?.referralCount || '0',
+        active_orders: userData?.objEarnings?.activeOrders || '0'
+    };
+
+    const business = {
+        total_earnings: userData?.objEarnings?.total || 0,
+        pending_payouts: userData?.objEarnings?.pendingPayouts || 0,
+        bank_name: userData?.bankName || "For Payouts"
     };
 
     return (
@@ -43,21 +99,26 @@ const ProfileScreen = () => {
                 <View style={{ width: 24 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#6C63FF"]} tintColor="#6C63FF" />
+                }
+            >
                 {/* Profile Header */}
                 <View style={styles.profileHeader}>
                     <View style={styles.profileImageContainer}>
                         <Image
-                            source={{ uri: 'https://randomuser.me/api/portraits/men/32.jpg' }}
+                            source={{ uri: userData?.avatar || 'https://ui-avatars.com/api/?name=' + (userData?.username || 'User') + '&background=6C63FF&color=fff' }}
                             style={styles.profileImage}
                         />
                         <View style={styles.editBadge}>
                             <Ionicons name="camera" size={14} color="#FFF" />
                         </View>
                     </View>
-                    <Text style={styles.profileName}>{user?.name || user?.username || 'Shop Owner'}</Text>
-                    <Text style={styles.profilePhone}>{user?.phone || user?.email || 'No contact info'}</Text>
+                    <Text style={styles.profileName}>{userData?.name || userData?.username || 'Shop Owner'}</Text>
+                    <Text style={styles.profilePhone}>{userData?.phone || userData?.email || 'No contact info'}</Text>
                     <View style={styles.statusContainer}>
                         <Text style={styles.statusText}>{isOnline ? 'Online for Business' : 'Offline'}</Text>
                         <Switch
@@ -72,17 +133,19 @@ const ProfileScreen = () => {
                 {/* Dashboard Stats */}
                 <View style={styles.statsRow}>
                     <View style={styles.statItem}>
-                        <Text style={styles.statValue}>4.8</Text>
-                        <Text style={styles.statLabel}>Rating</Text>
+                        <Text style={styles.statValue}>{stats.active_orders || '0'}</Text>
+                        <Text style={styles.statLabel}>Orders</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Text style={styles.statValue}>145</Text>
+                        <Text style={styles.statValue}>{stats.total_referrals || '0'}</Text>
                         <Text style={styles.statLabel}>Referrals</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Text style={styles.statValue}>2 yrs</Text>
+                        <Text style={styles.statValue}>
+                            {userData?.createdAt ? new Date().getFullYear() - new Date(userData.createdAt).getFullYear() : 0} yrs
+                        </Text>
                         <Text style={styles.statLabel}>Since</Text>
                     </View>
                 </View>
@@ -93,14 +156,14 @@ const ProfileScreen = () => {
                     <MenuOption
                         icon="wallet"
                         title="My Earnings"
-                        subtitle="₹ 45,250 Total Earned"
+                        subtitle={`${userData?.currency || '₹'} ${business.total_earnings?.toLocaleString() || '0'} Total Earned`}
                         color="#32C766"
                         onPress={() => console.log('Earnings')}
                     />
                     <MenuOption
                         icon="card"
                         title="Bank A/C Details"
-                        subtitle="For Payouts"
+                        subtitle={business.bank_name || "For Payouts"}
                         color="#6C63FF"
                         onPress={() => console.log('Bank Details')}
                     />
@@ -118,7 +181,7 @@ const ProfileScreen = () => {
                     <MenuOption
                         icon="qr-code"
                         title="My Referral Code"
-                        subtitle="RAJESH2024"
+                        subtitle={userData?.referralCode || "GET_CODE"}
                         color="#007AFF"
                         onPress={() => console.log('Referral Code')}
                     />
@@ -158,14 +221,20 @@ const ProfileScreen = () => {
 
                 <Text style={styles.appVersion}>Version 1.0.5 • Build 2024</Text>
 
-            </ScrollView >
-        </View >
+            </ScrollView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#F5F7FA',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundColor: '#F5F7FA',
     },
     header: {
@@ -233,7 +302,7 @@ const styles = StyleSheet.create({
     statusContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#E6F2FF', // Default light blue
+        backgroundColor: '#E6F2FF',
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,

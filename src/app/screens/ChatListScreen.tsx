@@ -1,91 +1,139 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, SafeAreaView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+    View,
+    Text,
+    FlatList,
+    TouchableOpacity,
+    StyleSheet,
+    ActivityIndicator,
+    SafeAreaView,
+} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { getReferralContacts } from '../services/chatService';
+import { getSocket, connectSocket } from '../services/socketService';
+import { useAuth } from '../context/AuthContext';
 
-const ChatListScreen = ({ navigation }: any) => {
-    // Dummy data for referrals/people
-    const discussions = [
-        {
-            id: '1',
-            name: 'Rahul Sharma',
-            message: 'Hey, I interested in your new catalog items.',
-            time: '10:30 AM',
-            avatar: 'https://ui-avatars.com/api/?name=Rahul+Sharma&background=0D8ABC&color=fff',
-            unread: 2,
-        },
-        {
-            id: '2',
-            name: 'Priya Patel',
-            message: 'Is the bulk discount still available?',
-            time: 'Yesterday',
-            avatar: 'https://ui-avatars.com/api/?name=Priya+Patel&background=FF6584&color=fff',
-            unread: 0,
-        },
-        {
-            id: '3',
-            name: 'Amit Kumar',
-            message: 'Thanks for the quick delivery!',
-            time: 'Yesterday',
-            avatar: 'https://ui-avatars.com/api/?name=Amit+Kumar&background=32C766&color=fff',
-            unread: 0,
-        },
-        {
-            id: '4',
-            name: 'Sneha Gupta',
-            message: 'Can you send me the price list?',
-            time: 'Tue',
-            avatar: 'https://ui-avatars.com/api/?name=Sneha+Gupta&background=FFA500&color=fff',
-            unread: 1,
-        },
-        {
-            id: '5',
-            name: 'Vikram Singh',
-            message: 'Payment sent via UPI.',
-            time: 'Mon',
-            avatar: 'https://ui-avatars.com/api/?name=Vikram+Singh&background=6C63FF&color=fff',
-            unread: 0,
-        },
-    ];
+const ChatRoomsScreen = ({ navigation }: any) => {
+    const { user } = useAuth();
+    const currentUserId = user?._id || user?.id;
+    const [rooms, setRooms] = useState<any[]>([]); // We'll store 'contacts' here
+    const [loading, setLoading] = useState(true);
 
-    const renderItem = ({ item }: { item: any }) => (
-        <TouchableOpacity style={styles.chatItem} onPress={() => console.log('Open chat with', item.name)}>
-            <Image source={{ uri: item.avatar }} style={styles.avatar} />
-            <View style={styles.chatContent}>
-                <View style={styles.chatHeader}>
-                    <Text style={styles.name}>{item.name}</Text>
-                    <Text style={styles.time}>{item.time}</Text>
+    const fetchRooms = async () => {
+        try {
+            console.log("Fetching referral contacts...");
+            const data = await getReferralContacts();
+            console.log("Referral Contacts API Response:", JSON.stringify(data, null, 2));
+            if (data.success) {
+                setRooms(data.contacts || []);
+                console.log("Rooms state updated with:", (data.contacts || []).length, "contacts");
+            } else {
+                console.warn("API returned success: false", data);
+            }
+        } catch (err) {
+            console.error('Error fetching chat contacts:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRooms();
+
+        // Listen for new rooms in real-time
+        const initSocket = async () => {
+            let socket = getSocket();
+            if (!socket?.connected) socket = await connectSocket();
+            socket.on('room_created', () => fetchRooms());
+        };
+
+        initSocket().catch(console.error);
+
+        // Refresh when screen comes back into focus
+        const unsubscribe = navigation.addListener('focus', fetchRooms);
+        return () => unsubscribe();
+    }, []);
+
+    const renderRoom = ({ item }: any) => {
+        const otherUser = item.user;
+        const room = item.room;
+        const initial = (otherUser.username || '?')[0].toUpperCase();
+
+        return (
+            <TouchableOpacity
+                style={styles.roomItem}
+                onPress={() =>
+                    navigation.navigate('ChatScreen', {
+                        roomId: room._id,
+                        currentUserId,
+                        roomName: otherUser.username || 'Chat',
+                    })
+                }
+            >
+                <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{initial}</Text>
+                    {otherUser.status === 'online' && <View style={styles.onlineDot} />}
                 </View>
-                <View style={styles.messageContainer}>
-                    <Text style={styles.message} numberOfLines={1}>
-                        {item.message}
-                    </Text>
-                    {item.unread > 0 && (
-                        <View style={styles.badge}>
-                            <Text style={styles.badgeText}>{item.unread}</Text>
-                        </View>
-                    )}
+                <View style={styles.roomInfo}>
+                    <View style={styles.roomHeader}>
+                        <Text style={styles.roomName}>{otherUser.username || 'Group Chat'}</Text>
+                        {room.lastMessage?.createdAt && (
+                            <Text style={styles.roomTime}>
+                                {new Date(room.lastMessage.createdAt).toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                })}
+                            </Text>
+                        )}
+                    </View>
+                    <View style={styles.roomBottom}>
+                        <Text style={styles.lastMessage} numberOfLines={1}>
+                            {room.lastMessage?.text || 'No messages yet'}
+                        </Text>
+                        {item.unreadCount > 0 && (
+                            <View style={styles.unreadBadge}>
+                                <Text style={styles.unreadText}>{item.unreadCount}</Text>
+                            </View>
+                        )}
+                    </View>
                 </View>
+            </TouchableOpacity>
+        );
+    };
+
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6C63FF" />
             </View>
-        </TouchableOpacity>
-    );
+        );
+    }
 
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Discussions</Text>
                 <TouchableOpacity style={styles.headerIcon}>
-                    <Ionicons name="create-outline" size={24} color="#007AFF" />
+                    <Ionicons name="create-outline" size={24} color="#6C63FF" />
                 </TouchableOpacity>
             </View>
             <View style={styles.subHeader}>
                 <Text style={styles.subHeaderText}>Referrals & People</Text>
             </View>
+
             <FlatList
-                data={discussions}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id}
+                data={rooms}
+                keyExtractor={(item) => item._id}
+                renderItem={renderRoom}
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                        <Ionicons name="chatbubbles-outline" size={64} color="#CCC" />
+                        <Text style={styles.emptyText}>No chats yet</Text>
+                        <Text style={styles.emptySubText}>Start a conversation!</Text>
+                    </View>
+                }
             />
         </SafeAreaView>
     );
@@ -96,6 +144,13 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F5F7FA',
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    // Header
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -125,17 +180,21 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
+
+    // List
     listContent: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         paddingBottom: 20,
     },
-    chatItem: {
+
+    // Room item
+    roomItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#FFF',
         borderRadius: 16,
         padding: 16,
-        marginBottom: 12,
+        marginBottom: 10,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
@@ -143,54 +202,60 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        marginRight: 16,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#6C63FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
     },
-    chatContent: {
-        flex: 1,
+    avatarText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
+    onlineDot: {
+        position: 'absolute',
+        bottom: 2,
+        right: 2,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: '#4CAF50',
+        borderWidth: 2,
+        borderColor: '#FFF',
     },
-    chatHeader: {
+    roomInfo: { flex: 1 },
+    roomHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 4,
     },
-    name: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1A1A1A',
-    },
-    time: {
-        fontSize: 12,
-        color: '#999',
-    },
-    messageContainer: {
+    roomName: { fontSize: 16, fontWeight: '600', color: '#1A1A1A' },
+    roomTime: { fontSize: 12, color: '#999' },
+    roomBottom: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    message: {
-        fontSize: 14,
-        color: '#666',
-        flex: 1,
-        marginRight: 8,
-    },
-    badge: {
-        backgroundColor: '#007AFF',
-        borderRadius: 10,
-        minWidth: 20,
-        height: 20,
+    lastMessage: { fontSize: 13, color: '#999', flex: 1, marginRight: 8 },
+    unreadBadge: {
+        backgroundColor: '#6C63FF',
+        borderRadius: 12,
+        minWidth: 24,
+        height: 24,
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 6,
     },
-    badgeText: {
-        color: '#FFF',
-        fontSize: 10,
-        fontWeight: 'bold',
+    unreadText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
+
+    // Empty state
+    emptyContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 100,
     },
+    emptyText: { fontSize: 18, fontWeight: '600', color: '#999', marginTop: 12 },
+    emptySubText: { fontSize: 14, color: '#BBB', marginTop: 4 },
 });
 
-export default ChatListScreen;
+export default ChatRoomsScreen;

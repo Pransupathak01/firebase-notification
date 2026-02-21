@@ -5,7 +5,7 @@ import ProductScreen from '../screens/ProductScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import MapScreen from '../screens/MapScreen';
 import OrdersScreen from '../screens/OrdersScreen';
-import ChatScreen from '../screens/ChatScreen';
+import ChatRoomsScreen from '../screens/ChatListScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const Tab = createBottomTabNavigator();
@@ -33,9 +33,9 @@ const BottomTabNavigator = () => {
 
                     return <Ionicons name={iconName} size={size} color={color} />;
                 },
-                tabBarActiveTintColor: '#007AFF', // Standard iOS blue or a nice color
+                tabBarActiveTintColor: '#6C63FF',
                 tabBarInactiveTintColor: 'gray',
-                headerShown: false, // Often we tab navigators don't show the header for the tab itself, letting screens handle it or showing it. I'll toggle false for a cleaner look if screens have their own headers or simple content.
+                headerShown: false,
             })}
         >
             <Tab.Screen name="Home" component={HomeScreen} />
@@ -43,8 +43,7 @@ const BottomTabNavigator = () => {
             <Tab.Screen name="Orders" component={OrdersScreen} />
             <Tab.Screen name="Product" component={ProductScreen} />
             <Tab.Screen name="Notifications" component={NotificationsScreen} />
-            <Tab.Screen name="Chat" component={ChatScreen} />
-
+            <Tab.Screen name="Chat" component={ChatRoomsScreen} />
         </Tab.Navigator>
     );
 };
