@@ -12,6 +12,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getReferralContacts } from '../services/chatService';
 import { getSocket, connectSocket } from '../services/socketService';
 import { useAuth } from '../context/AuthContext';
+import ScreenHeader from '../components/ScreenHeader';
 
 const ChatRoomsScreen = ({ navigation }: any) => {
     const { user } = useAuth();
@@ -111,12 +112,14 @@ const ChatRoomsScreen = ({ navigation }: any) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Discussions</Text>
-                <TouchableOpacity style={styles.headerIcon}>
-                    <Ionicons name="create-outline" size={24} color="#6C63FF" />
-                </TouchableOpacity>
-            </View>
+            <ScreenHeader
+                title="Discussions"
+                rightElement={
+                    <TouchableOpacity style={styles.headerIcon}>
+                        <Ionicons name="create-outline" size={24} color="#6C63FF" />
+                    </TouchableOpacity>
+                }
+            />
             <View style={styles.subHeader}>
                 <Text style={styles.subHeaderText}>Referrals & People</Text>
             </View>
@@ -150,22 +153,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 
-    // Header
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1A1A1A',
-    },
+    // Header styles removed as they are handled by ScreenHeader
     headerIcon: {
         padding: 5,
     },

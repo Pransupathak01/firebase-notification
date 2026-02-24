@@ -6,17 +6,21 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
+    SafeAreaView,
     Alert
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { registerUser } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
+import ScreenHeader from '../components/ScreenHeader';
 
 const RegisterScreen = () => {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [referredBy, setReferredBy] = useState('');
     const [loading, setLoading] = useState(false);
     const navigation = useNavigation<any>();
     const { register } = useAuth();
@@ -31,7 +35,12 @@ const RegisterScreen = () => {
 
         setLoading(true);
         try {
-            const response = await registerUser({ username, email, password });
+            const response = await registerUser({
+                username,
+                email,
+                password,
+                referredBy: referredBy.trim() || undefined
+            });
 
             if (response.token) {
                 // Store session and update context
@@ -49,68 +58,85 @@ const RegisterScreen = () => {
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Create Account</Text>
+        <SafeAreaView style={styles.safeArea}>
+            <ScreenHeader
+                title="Create Account"
+                showBackButton={true}
+            />
+            <View style={styles.container}>
+                <Text style={styles.title}>Join Us Today!</Text>
 
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="First Name"
-                    placeholderTextColor="#888"
-                    value={firstName}
-                    onChangeText={setFirstName}
-                />
-                <TextInput
-                    style={styles.input}
-                    placeholder="Last Name"
-                    placeholderTextColor="#888"
-                    value={lastName}
-                    onChangeText={setLastName}
-                />
-                <TextInput
-                    style={styles.input}
-                    placeholder="Email"
-                    placeholderTextColor="#888"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                />
-                <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    placeholderTextColor="#888"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                />
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="First Name"
+                        placeholderTextColor="#888"
+                        value={firstName}
+                        onChangeText={setFirstName}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Last Name"
+                        placeholderTextColor="#888"
+                        value={lastName}
+                        onChangeText={setLastName}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Email"
+                        placeholderTextColor="#888"
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Password"
+                        placeholderTextColor="#888"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Referral Code (Optional)"
+                        placeholderTextColor="#888"
+                        value={referredBy}
+                        onChangeText={setReferredBy}
+                        autoCapitalize="characters"
+                    />
+                </View>
+
+                <TouchableOpacity
+                    style={styles.button}
+                    onPress={handleRegister}
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <Text style={styles.buttonText}>Register</Text>
+                    )}
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                    <Text style={styles.linkText}>Already have an account? Login</Text>
+                </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-                style={styles.button}
-                onPress={handleRegister}
-                disabled={loading}
-            >
-                {loading ? (
-                    <ActivityIndicator color="#fff" />
-                ) : (
-                    <Text style={styles.buttonText}>Register</Text>
-                )}
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={styles.linkText}>Already have an account? Login</Text>
-            </TouchableOpacity>
-        </View>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
     container: {
         flex: 1,
         padding: 20,
         justifyContent: 'center',
-        backgroundColor: '#fff',
     },
     title: {
         fontSize: 28,

@@ -12,7 +12,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import { useAuth } from '../context/AuthContext';
 
 export type RootStackParamList = {
-    MainTabs: undefined;
+    MainTabs: { screen?: string } | undefined;
     Cart: undefined;
     ProductDetails: { product: any };
     ChatScreen: { roomId: string; currentUserId: string; roomName: string };

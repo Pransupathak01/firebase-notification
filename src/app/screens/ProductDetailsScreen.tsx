@@ -6,6 +6,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useCart } from '../context/CartContext';
 import analytics from '@react-native-firebase/analytics';
 import ZoomGallery from '../components/ZoomGallery';
+import ScreenHeader from '../components/ScreenHeader';
 
 const { width } = Dimensions.get('window');
 
@@ -59,14 +60,12 @@ const ProductDetailsScreen = () => {
 
     return (
         <SafeAreaView style={styles.container}>
+            <ScreenHeader
+                title={product.name}
+                showBackButton={true}
+            />
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <View style={styles.imageContainer}>
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => navigation.goBack()}
-                    >
-                        <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
-                    </TouchableOpacity>
                     <ZoomGallery images={product.images || (product.imageUrl ? [product.imageUrl] : [])} />
                 </View>
 
@@ -184,31 +183,12 @@ const styles = StyleSheet.create({
     imageContainer: {
         width: width,
         backgroundColor: '#F0F0F0',
-        position: 'relative',
-        paddingTop: 80, // Space for back button
-        paddingBottom: 20,
+        paddingVertical: 20,
         alignItems: 'center',
     },
     image: {
         width: '100%',
         height: '100%',
-    },
-    backButton: {
-        position: 'absolute',
-        top: 40, // Adjust for status bar
-        left: 20,
-        zIndex: 10,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
     },
     content: {
         padding: 24,

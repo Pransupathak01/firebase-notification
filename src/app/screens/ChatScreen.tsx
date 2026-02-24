@@ -13,6 +13,7 @@ import {
 import { getSocket, connectSocket } from '../services/socketService';
 import { Socket } from 'socket.io-client';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import ScreenHeader from '../components/ScreenHeader';
 
 interface Message {
     _id: string;
@@ -169,24 +170,25 @@ const ChatScreen = ({ route, navigation }: any) => {
             keyboardVerticalOffset={90}
         >
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
-                </TouchableOpacity>
-                <View style={styles.headerInfo}>
-                    <View style={styles.headerAvatar}>
-                        <Text style={styles.headerAvatarText}>
-                            {(roomName || 'C')[0].toUpperCase()}
-                        </Text>
+            <ScreenHeader
+                title=""
+                showBackButton={true}
+                rightElement={
+                    <View style={styles.headerInfo}>
+                        <View style={styles.headerAvatar}>
+                            <Text style={styles.headerAvatarText}>
+                                {(roomName || 'C')[0].toUpperCase()}
+                            </Text>
+                        </View>
+                        <View>
+                            <Text style={styles.headerTitle}>{roomName || 'Chat'}</Text>
+                            {isTyping && (
+                                <Text style={styles.headerSubtitle}>typing...</Text>
+                            )}
+                        </View>
                     </View>
-                    <View>
-                        <Text style={styles.headerTitle}>{roomName || 'Chat'}</Text>
-                        {isTyping && (
-                            <Text style={styles.headerSubtitle}>typing...</Text>
-                        )}
-                    </View>
-                </View>
-            </View>
+                }
+            />
 
             <FlatList
                 ref={flatListRef}
@@ -236,52 +238,33 @@ const ChatScreen = ({ route, navigation }: any) => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F5F5F5' },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-
-    // Header
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFF',
-        paddingHorizontal: 12,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#EEE',
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-    },
-    backButton: {
-        padding: 4,
-        marginRight: 8,
-    },
     headerInfo: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
     },
+
     headerAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         backgroundColor: '#6C63FF',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 10,
+        marginRight: 8,
     },
     headerAvatarText: {
         color: '#FFF',
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '700',
     },
     headerTitle: {
-        fontSize: 17,
+        fontSize: 16,
         fontWeight: '600',
         color: '#333',
     },
     headerSubtitle: {
-        fontSize: 12,
+        fontSize: 11,
         color: '#6C63FF',
         fontStyle: 'italic',
     },

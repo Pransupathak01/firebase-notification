@@ -9,6 +9,8 @@ import { getProducts, getCategories } from '../services/productsService';
 
 // Import Reusable Component
 import ProductCard from '../components/ProductCard';
+import { useCart } from '../context/CartContext';
+import ScreenHeader from '../components/ScreenHeader';
 
 const COLUMN_COUNT = 2;
 const SPACING = 12;
@@ -24,6 +26,7 @@ const SORT_OPTIONS = [
 
 const ProductScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const { totalItems } = useCart();
 
     // State
     const [products, setProducts] = useState<any[]>([]);
@@ -143,12 +146,19 @@ const ProductScreen = () => {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Products</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
-                    <Ionicons name="cart-outline" size={28} color="#1A1A1A" />
-                </TouchableOpacity>
-            </View>
+            <ScreenHeader
+                title="Products"
+                rightElement={
+                    <TouchableOpacity style={styles.cartButton} onPress={() => navigation.navigate('Cart')}>
+                        <Ionicons name="cart" size={26} color="#1A1A1A" />
+                        {totalItems > 0 && (
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{totalItems > 99 ? '99+' : totalItems}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                }
+            />
 
             {/* Search Bar */}
             <View style={styles.searchContainer}>
@@ -258,21 +268,27 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F5F7FA',
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 24,
-        paddingTop: 10,
-        paddingBottom: 12,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
+    cartButton: {
+        padding: 5,
+        position: 'relative',
     },
-    headerTitle: {
-        fontSize: 24,
+    badge: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        backgroundColor: '#FF3B30',
+        borderRadius: 10,
+        minWidth: 18,
+        height: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: '#FFFFFF',
+    },
+    badgeText: {
+        color: '#FFFFFF',
+        fontSize: 10,
         fontWeight: 'bold',
-        color: '#1A1A1A',
     },
     searchContainer: {
         flexDirection: 'row',

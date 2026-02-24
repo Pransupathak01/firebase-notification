@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getOrders } from '../services/ordersService';
+import ScreenHeader from '../components/ScreenHeader';
 
 const FILTER_OPTIONS = ['Today', 'This Week', 'Last Week', 'This Month', 'Last Month'];
 
@@ -132,6 +133,12 @@ const OrdersScreen = () => {
                     <Text style={styles.totalLabel}>Total Amount</Text>
                     <Text style={styles.totalValue}>{formatCurrency(item.amount)}</Text>
                 </View>
+                {item.referralCode && (
+                    <View style={styles.detailRow}>
+                        <Text style={styles.referralAppliedLabel}>Referral ({item.referralCode}):</Text>
+                        <Text style={styles.referralAppliedValue}>- {formatCurrency(item.referralDiscount)}</Text>
+                    </View>
+                )}
                 <View style={[styles.detailRow, styles.earningsRow]}>
                     <Text style={styles.earningsLabel}>My Earnings</Text>
                     <Text style={styles.earningsValue}>{formatCurrency(item.earnings)}</Text>
@@ -142,9 +149,7 @@ const OrdersScreen = () => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>My Orders</Text>
-            </View>
+            <ScreenHeader title="My Orders" />
 
             <View style={styles.searchContainer}>
                 <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
@@ -183,6 +188,11 @@ const OrdersScreen = () => {
                     <Text style={styles.summaryLabel}>Total Earnings</Text>
                     <Text style={styles.summaryValueTotal}>{formatCurrency(summary.total_earnings || 0)}</Text>
                 </View>
+                <View style={styles.summaryDivider} />
+                <View style={styles.summaryItem}>
+                    <Text style={styles.summaryLabel}>Referral Savings</Text>
+                    <Text style={styles.summaryValueReferral}>{formatCurrency(summary.total_referral_discount || 0)}</Text>
+                </View>
             </View>
 
             {loading ? (
@@ -215,19 +225,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F5F7FA',
-    },
-    header: {
-        height: 60,
-        backgroundColor: '#FFFFFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1A1A1A',
     },
     searchContainer: {
         flexDirection: 'row',
@@ -420,6 +417,21 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         color: '#32C766',
+    },
+    summaryValueReferral: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#6C63FF',
+    },
+    referralAppliedLabel: {
+        fontSize: 12,
+        color: '#6C63FF',
+        fontWeight: '600',
+    },
+    referralAppliedValue: {
+        fontSize: 12,
+        color: '#6C63FF',
+        fontWeight: '700',
     },
     emptyContainer: {
         alignItems: 'center',

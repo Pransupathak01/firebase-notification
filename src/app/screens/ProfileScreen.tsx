@@ -6,6 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 // Import Reusable Components
 import MenuOption from '../components/MenuOption';
 import SectionHeader from '../components/SectionHeader';
+import ScreenHeader from '../components/ScreenHeader';
 import { useAuth } from '../context/AuthContext';
 import { getUserProfile } from '../services/authService';
 
@@ -91,13 +92,10 @@ const ProfileScreen = () => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>My Profile</Text>
-                <View style={{ width: 24 }} />
-            </View>
+            <ScreenHeader
+                title="My Profile"
+                showBackButton={true}
+            />
 
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
@@ -236,24 +234,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#F5F7FA',
-    },
-    header: {
-        height: 60,
-        backgroundColor: '#FFFFFF',
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        justifyContent: 'space-between',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-    },
-    backButton: {
-        padding: 4,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#333',
     },
     scrollContent: {
         paddingBottom: 40,

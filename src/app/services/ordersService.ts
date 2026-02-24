@@ -47,4 +47,27 @@ export const getOrders = async (filter: string = 'All') => {
     }
 };
 
+export const createOrder = async (orderData: {
+    addressId: string;
+    couponCode?: string;
+    referralCode?: string;
+    paymentMethod: string;
+}) => {
+    try {
+        const response = await api.post('/orders', orderData);
+        return response.data;
+    } catch (error: any) {
+        throw error.response?.data || { message: 'Failed to place order' };
+    }
+};
+
+export const validateCheckoutAPI = async (referralCode?: string, couponCode?: string) => {
+    try {
+        const response = await api.post('/orders/validate-checkout', { referralCode, couponCode });
+        return response.data;
+    } catch (error: any) {
+        throw error.response?.data || { message: 'Validation failed' };
+    }
+};
+
 export default api;

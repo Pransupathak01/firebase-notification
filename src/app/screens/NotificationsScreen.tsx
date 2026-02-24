@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Clipboard } from 'react-native';
 import { useNotifications, Notification } from '../context/NotificationContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import ScreenHeader from '../components/ScreenHeader';
 
 const NotificationsScreen = () => {
     const { notifications, fcmToken } = useNotifications();
@@ -30,12 +31,14 @@ const NotificationsScreen = () => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Notifications</Text>
-                <TouchableOpacity onPress={copyToken}>
-                    <Ionicons name="copy-outline" size={24} color="#007AFF" />
-                </TouchableOpacity>
-            </View>
+            <ScreenHeader
+                title="Notifications"
+                rightElement={
+                    <TouchableOpacity onPress={copyToken}>
+                        <Ionicons name="copy-outline" size={24} color="#007AFF" />
+                    </TouchableOpacity>
+                }
+            />
 
             {notifications.length === 0 ? (
                 <View style={styles.emptyContainer}>
@@ -58,16 +61,8 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F5F7FA',
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 20,
-        backgroundColor: '#FFF',
-        elevation: 2,
-    },
     headerTitle: {
-        fontSize: 24,
+        fontSize: 18,
         fontWeight: 'bold',
         color: '#333',
     },

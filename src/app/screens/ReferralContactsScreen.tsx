@@ -12,6 +12,7 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getReferralContacts } from '../services/chatService';
 import { useAuth } from '../context/AuthContext';
+import ScreenHeader from '../components/ScreenHeader';
 
 const ReferralContactsScreen = ({ navigation }: any) => {
     const { user } = useAuth();
@@ -75,12 +76,10 @@ const ReferralContactsScreen = ({ navigation }: any) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>My Referrals</Text>
-            </View>
+            <ScreenHeader
+                title="My Referrals"
+                showBackButton={true}
+            />
 
             <FlatList
                 data={contacts}
@@ -109,23 +108,6 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
-    },
-    backButton: {
-        marginRight: 15,
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1A1A1A',
     },
     listContent: {
         paddingHorizontal: 16,

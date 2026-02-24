@@ -6,11 +6,14 @@ import {
     TouchableOpacity,
     StyleSheet,
     ActivityIndicator,
+    SafeAreaView,
     Alert
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { loginUser } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
+import ScreenHeader from '../components/ScreenHeader';
 
 const LoginScreen = () => {
     const [email, setEmail] = useState('');
@@ -44,55 +47,66 @@ const LoginScreen = () => {
         }
     };
 
+    const canGoBack = navigation.canGoBack();
+
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Welcome Back!</Text>
+        <SafeAreaView style={styles.safeArea}>
+            <ScreenHeader
+                title="Sign In"
+                showBackButton={navigation.canGoBack()}
+            />
+            <View style={styles.container}>
+                <Text style={styles.title}>Welcome Back!</Text>
 
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Email"
-                    placeholderTextColor="#888"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                />
-                <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    placeholderTextColor="#888"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                />
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Email"
+                        placeholderTextColor="#888"
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Password"
+                        placeholderTextColor="#888"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                    />
+                </View>
+
+                <TouchableOpacity
+                    style={styles.button}
+                    onPress={handleLogin}
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <Text style={styles.buttonText}>Login</Text>
+                    )}
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                    <Text style={styles.linkText}>Don't have an account? Sign Up</Text>
+                </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-                style={styles.button}
-                onPress={handleLogin}
-                disabled={loading}
-            >
-                {loading ? (
-                    <ActivityIndicator color="#fff" />
-                ) : (
-                    <Text style={styles.buttonText}>Login</Text>
-                )}
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                <Text style={styles.linkText}>Don't have an account? Sign Up</Text>
-            </TouchableOpacity>
-        </View>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
     container: {
         flex: 1,
         padding: 20,
         justifyContent: 'center',
-        backgroundColor: '#fff',
     },
     title: {
         fontSize: 28,
