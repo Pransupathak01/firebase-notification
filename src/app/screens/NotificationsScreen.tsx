@@ -10,6 +10,7 @@ import {
     RefreshControl,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useNotifications } from '../context/NotificationContext';
 import ScreenHeader from '../components/ScreenHeader';
 import NotificationCard, { BackendNotification } from '../components/NotificationCard';
 import {
@@ -26,6 +27,9 @@ const NotificationsScreen = () => {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
+
+    // Subscribe to real-time FCM tick so we re-fetch whenever a new push arrives
+    const { newNotificationTick } = useNotifications();
 
     // ─── Fetch ────────────────────────────────────────────────────────────────
     const fetchNotifications = useCallback(async (pageNum = 1, refresh = false) => {
@@ -59,7 +63,15 @@ const NotificationsScreen = () => {
         }
     }, []);
 
+    // Initial load
     useEffect(() => { fetchNotifications(1); }, []);
+
+    // Re-fetch quietly (refresh=true) whenever a new FCM notification arrives
+    useEffect(() => {
+        if (newNotificationTick > 0) {
+            fetchNotifications(1, true);
+        }
+    }, [newNotificationTick]);
 
     // ─── Actions ──────────────────────────────────────────────────────────────
     const handleMarkAsRead = async (id: string) => {

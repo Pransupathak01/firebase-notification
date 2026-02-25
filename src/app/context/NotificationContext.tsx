@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
-import { Alert, Platform } from 'react-native';
+import { Alert, Platform, PermissionsAndroid } from 'react-native';
 
 export interface Notification {
     id: string;
@@ -13,6 +13,7 @@ export interface Notification {
 interface NotificationContextType {
     notifications: Notification[];
     fcmToken: string | null;
+    newNotificationTick: number; // increments on every new FCM message
     requestUserPermission: () => Promise<void>;
     addManualNotification: (title: string, body: string) => void;
     updateFCMTokenBackend: (token: string) => Promise<void>;
@@ -34,8 +35,19 @@ import { updateFCMToken } from '../services/notificationService';
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [fcmToken, setFcmToken] = useState<string | null>(null);
+    const [newNotificationTick, setNewNotificationTick] = useState(0);
 
     const requestUserPermission = async () => {
+        // Android 13+ requires explicit runtime permission for notifications
+        if (Platform.OS === 'android' && Platform.Version >= 33) {
+            const granted = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+            );
+            if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                console.warn('POST_NOTIFICATIONS permission denied — notifications will not appear');
+            }
+        }
+
         const authStatus = await messaging().requestPermission();
         const enabled =
             authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
@@ -44,8 +56,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         if (enabled) {
             console.log('Authorization status:', authStatus);
             getFcmToken();
-            createNotificationChannel();
         }
+        // Always ensure channel exists (even on re-launches)
+        await createNotificationChannel();
     };
 
     const createNotificationChannel = async () => {
@@ -113,14 +126,32 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribe = messaging().onMessage(async (remoteMessage) => {
             console.log('A new FCM message arrived!', remoteMessage);
 
-            // Display notification using Notifee for foreground
+            // Ensure channel exists before displaying
+            await notifee.createChannel({
+                id: 'sound_channel_final',
+                name: 'Sound Channel Final',
+                sound: 'custom_sound',
+                importance: AndroidImportance.HIGH,
+            });
+
+            // Display heads-up notification using Notifee
+            const title = remoteMessage.notification?.title ||
+                (remoteMessage.data?.title ? String(remoteMessage.data.title) : undefined) ||
+                'New Notification';
+            const body = remoteMessage.notification?.body ||
+                (remoteMessage.data?.body ? String(remoteMessage.data.body) : undefined) ||
+                'You have a new update';
+
             await notifee.displayNotification({
-                title: remoteMessage.notification?.title,
-                body: remoteMessage.notification?.body,
+                title,
+                body,
                 android: {
                     channelId: 'sound_channel_final',
-                    smallIcon: 'ic_notification',
-                    color: '#db6809ff',
+                    smallIcon: 'ic_notification',  // must be white-on-transparent in drawable/
+                    color: '#db6809',               // 6-digit hex only
+                    sound: 'custom_sound',
+                    importance: AndroidImportance.HIGH,
+                    showTimestamp: true,
                     pressAction: {
                         id: 'default',
                     },
@@ -128,6 +159,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             });
 
             addNotification(remoteMessage);
+            // Bump the tick so screens can react and re-fetch from backend
+            setNewNotificationTick(prev => prev + 1);
         });
 
         // Handle Notification Caused App to Open from Background State
@@ -153,6 +186,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         <NotificationContext.Provider value={{
             notifications,
             fcmToken,
+            newNotificationTick,
             requestUserPermission,
             addManualNotification,
             updateFCMTokenBackend

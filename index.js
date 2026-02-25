@@ -27,8 +27,11 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
         body: remoteMessage.notification?.body || remoteMessage.data?.body || 'You have a new message',
         android: {
             channelId: 'sound_channel_final',
+            smallIcon: 'ic_notification',  // white-on-transparent drawable, NOT ic_launcher
+            color: '#7a33ccff',              // 6-digit hex only
             sound: 'custom_sound',
-            smallIcon: 'ic_launcher',
+            importance: AndroidImportance.HIGH,
+            showTimestamp: true,
             pressAction: {
                 id: 'default',
             },

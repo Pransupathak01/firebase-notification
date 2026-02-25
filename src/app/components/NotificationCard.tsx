@@ -20,11 +20,21 @@ interface Props {
 
 const getIconForType = (type?: string) => {
     switch (type) {
-        case 'order': return { name: 'cube', color: '#6C63FF' };
-        case 'chat': return { name: 'chatbubble', color: '#32C766' };
-        case 'payment': return { name: 'cash', color: '#FF9500' };
-        case 'referral': return { name: 'people', color: '#FF6584' };
-        default: return { name: 'notifications', color: '#007AFF' };
+        case 'ORDER_PLACED':
+        case 'ORDER_STATUS_UPDATE':
+        case 'order':
+            return { name: 'cube', color: '#6C63FF' };
+        case 'AREA_ORDER_RECEIVED':
+            return { name: 'storefront', color: '#FF9500' };
+        case 'REFERRAL_EARNING':
+        case 'referral':
+            return { name: 'people', color: '#FF6584' };
+        case 'chat':
+            return { name: 'chatbubble', color: '#32C766' };
+        case 'TEST':
+        case 'GENERAL':
+        default:
+            return { name: 'notifications', color: '#007AFF' };
     }
 };
 
