@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { registerUser } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import ScreenHeader from '../components/ScreenHeader';
 
 const RegisterScreen = () => {
@@ -24,6 +25,7 @@ const RegisterScreen = () => {
     const [loading, setLoading] = useState(false);
     const navigation = useNavigation<any>();
     const { register } = useAuth();
+    const { fcmToken, updateFCMTokenBackend } = useNotifications();
 
     const handleRegister = async () => {
         if (!firstName || !lastName || !email || !password) {
@@ -45,7 +47,11 @@ const RegisterScreen = () => {
             if (response.token) {
                 // Store session and update context
                 await register(response, response.token);
-                // Navigation is handled by Root Navigator
+
+                // Update FCM token on backend after registration
+                if (fcmToken) {
+                    await updateFCMTokenBackend(fcmToken);
+                }
             } else {
                 Alert.alert('Registration Failed', 'No token received');
             }

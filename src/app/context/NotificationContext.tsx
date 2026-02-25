@@ -15,6 +15,7 @@ interface NotificationContextType {
     fcmToken: string | null;
     requestUserPermission: () => Promise<void>;
     addManualNotification: (title: string, body: string) => void;
+    updateFCMTokenBackend: (token: string) => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -28,6 +29,7 @@ export const useNotifications = () => {
 };
 
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
+import { updateFCMToken } from '../services/notificationService';
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -57,12 +59,24 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         console.log('Notification channel created: sound_channel_final');
     };
 
+    const updateFCMTokenBackend = async (token: string) => {
+        try {
+            console.log('Updating FCM Token on backend...', token);
+            await updateFCMToken(token);
+            console.log('FCM Token updated successfully on backend');
+        } catch (error) {
+            console.warn('Silent failure: Failed to update FCM token on backend.', error);
+        }
+    };
+
     const getFcmToken = async () => {
         try {
             const token = await messaging().getToken();
             if (token) {
                 console.log('FCM Token:', token);
                 setFcmToken(token);
+                // Automatically update backend if token is found
+                await updateFCMTokenBackend(token);
             }
         } catch (error) {
             console.error('Failed to get FCM token:', error);
@@ -136,7 +150,13 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     return (
-        <NotificationContext.Provider value={{ notifications, fcmToken, requestUserPermission, addManualNotification }}>
+        <NotificationContext.Provider value={{
+            notifications,
+            fcmToken,
+            requestUserPermission,
+            addManualNotification,
+            updateFCMTokenBackend
+        }}>
             {children}
         </NotificationContext.Provider>
     );

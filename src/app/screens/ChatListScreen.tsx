@@ -126,7 +126,7 @@ const ChatRoomsScreen = ({ navigation }: any) => {
 
             <FlatList
                 data={rooms}
-                keyExtractor={(item) => item._id}
+                keyExtractor={(item) => item.room._id}
                 renderItem={renderRoom}
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}

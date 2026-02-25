@@ -8,7 +8,7 @@ const FILTER_OPTIONS = ['Today', 'This Week', 'Last Week', 'This Month', 'Last M
 
 const OrdersScreen = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedFilter, setSelectedFilter] = useState('Today');
+    const [selectedFilter, setSelectedFilter] = useState('This Week');
     const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
     const [allOrders, setAllOrders] = useState<any[]>([]); // Store fetched orders
     const [loading, setLoading] = useState(true);

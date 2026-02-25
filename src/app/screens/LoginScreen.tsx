@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { loginUser } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import ScreenHeader from '../components/ScreenHeader';
 
 const LoginScreen = () => {
@@ -21,6 +22,7 @@ const LoginScreen = () => {
     const [loading, setLoading] = useState(false);
     const navigation = useNavigation<any>();
     const { login } = useAuth();
+    const { fcmToken, updateFCMTokenBackend } = useNotifications();
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -35,7 +37,11 @@ const LoginScreen = () => {
             if (response.token) {
                 // Store session and update context
                 await login(response, response.token);
-                // Navigation is handled by the Root Navigator observing auth state
+
+                // Update FCM token on backend after login
+                if (fcmToken) {
+                    await updateFCMTokenBackend(fcmToken);
+                }
             } else {
                 Alert.alert('Login Failed', 'No token received');
             }

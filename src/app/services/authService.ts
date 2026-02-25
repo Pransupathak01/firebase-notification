@@ -42,6 +42,9 @@ export const registerUser = async (userData: any) => {
 export const loginUser = async (userData: any) => {
     try {
         const response = await api.post('/auth/login', userData);
+        if (response.data && response.data.token) {
+            // console.log("POSTMAN DEBUG: Login Token ->", response.data.token);
+        }
         return response.data;
     } catch (error: any) {
         throw error.response?.data || { message: 'Network error or server unreachable' };
