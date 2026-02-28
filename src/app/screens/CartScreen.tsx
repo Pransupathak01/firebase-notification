@@ -16,7 +16,11 @@ import { RootStackParamList } from '../navigations/AppNavigator';
 import { useCart } from '../context/CartContext';
 import { fetchAddresses, saveAddress, Address } from '../services/addressService';
 import { fetchCoupons, Coupon } from '../services/couponService';
-import { createOrder, validateCheckoutAPI } from '../services/ordersService';
+import { validateCheckoutAPI } from '../services/ordersService';
+import { createRazorpayOrder, verifyPaymentAndPlaceOrder } from '../services/paymentService';
+import { getUserSession } from '../services/authService';
+import RazorpayCheckout from 'react-native-razorpay';
+import { AppConfig } from '../config/api';
 
 // Child Components
 import CartStep from '../components/checkout/CartStep';
@@ -111,11 +115,52 @@ const CartScreen = () => {
 
         try {
             setIsProcessing(true);
-            const res = await createOrder({
+
+            // 1. Get user session for prefill
+            const session = await getUserSession();
+            if (!session) {
+                Alert.alert('Error', 'User session not found. Please log in again.');
+                setIsProcessing(false);
+                return;
+            }
+
+            // 2. Get Order ID from backend
+            const finalTotal = calculateFinalTotal();
+            const orderRes = await createRazorpayOrder(finalTotal);
+
+            // The backend returns the Razorpay order object directly, which has an 'id'
+            if (!orderRes || !orderRes.id) {
+                throw new Error(orderRes?.message || 'Failed to initialize payment');
+            }
+
+            // 3. Open Razorpay Checkout
+            const options = {
+                description: 'Order from SyncTalk',
+                image: 'https://your-logo-url.com/logo.png', // Replace with your app logo
+                currency: orderRes.currency || 'INR',
+                key: AppConfig.RAZORPAY_KEY,
+                amount: orderRes.amount,
+                name: 'SyncTalk App',
+                order_id: orderRes.id,
+                prefill: {
+                    email: session.user.email,
+                    contact: session.user.phone || '',
+                    name: session.user.name
+                },
+                theme: { color: '#007AFF' }
+            };
+
+            const paymentData = await RazorpayCheckout.open(options);
+
+            // 4. Verify payment and place official order
+            const res = await verifyPaymentAndPlaceOrder({
                 addressId: selectedAddress.id,
                 couponCode: selectedCoupon?.code,
                 referralCode: appliedReferral || undefined,
-                paymentMethod: 'UPI'
+                paymentMethod: 'UPI',
+                razorpay_order_id: paymentData.razorpay_order_id,
+                razorpay_payment_id: paymentData.razorpay_payment_id,
+                razorpay_signature: paymentData.razorpay_signature,
             });
 
             if (res.success) {
@@ -135,10 +180,17 @@ const CartScreen = () => {
                 ]);
             } else {
                 setIsProcessing(false);
+                Alert.alert('Error', res.message || 'Payment verification failed');
             }
         } catch (err: any) {
             setIsProcessing(false);
-            Alert.alert('Checkout Error', err.message || 'Failed to place order');
+            console.error('Payment Error:', err);
+            // Razorpay returns error object on cancel/fail
+            if (err.code) {
+                Alert.alert('Payment Cancelled', 'Payment process was interrupted.');
+            } else {
+                Alert.alert('Checkout Error', err.message || 'An error occurred during payment.');
+            }
         }
     };
 

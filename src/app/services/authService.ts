@@ -69,6 +69,33 @@ export const getUserProfile = async () => {
     }
 };
 
+export const updateBankDetails = async (details: any) => {
+    try {
+        const response = await api.put('/users/update-bank', details);
+        return response.data;
+    } catch (error: any) {
+        throw error.response?.data || { message: 'Failed to update bank details' };
+    }
+};
+
+export const getEarningsHistory = async () => {
+    try {
+        const response = await api.get('/users/earnings-history');
+        return response.data;
+    } catch (error: any) {
+        throw error.response?.data || { message: 'Failed to fetch earnings history' };
+    }
+};
+
+export const getBankDetails = async () => {
+    try {
+        const response = await api.get('/users/bank-details');
+        return response.data;
+    } catch (error: any) {
+        throw error.response?.data || { message: 'Failed to fetch bank details' };
+    }
+};
+
 // Storage functions
 export const storeUserSession = async (sessionData: { token: string; user: any }) => {
     try {

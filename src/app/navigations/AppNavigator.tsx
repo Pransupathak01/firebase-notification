@@ -9,6 +9,9 @@ import ReferralContactsScreen from '../screens/ReferralContactsScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import EarningsScreen from '../screens/EarningsScreen';
+import BankDetailsScreen from '../screens/BankDetailsScreen';
+import SalesReportScreen from '../screens/SalesReportScreen';
 import { useAuth } from '../context/AuthContext';
 
 export type RootStackParamList = {
@@ -20,6 +23,9 @@ export type RootStackParamList = {
     Profile: undefined;
     Login: undefined;
     Register: undefined;
+    Earnings: undefined;
+    BankDetails: undefined;
+    SalesReport: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -46,6 +52,9 @@ const AppNavigator = () => {
                     <Stack.Screen name="ChatScreen" component={ChatScreen} />
                     <Stack.Screen name="ReferralContacts" component={ReferralContactsScreen} />
                     <Stack.Screen name="Profile" component={ProfileScreen} />
+                    <Stack.Screen name="Earnings" component={EarningsScreen} />
+                    <Stack.Screen name="BankDetails" component={BankDetailsScreen} />
+                    <Stack.Screen name="SalesReport" component={SalesReportScreen} />
                 </>
             ) : (
                 // Auth Stack

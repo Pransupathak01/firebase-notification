@@ -180,12 +180,7 @@ const ChatScreen = ({ route, navigation }: any) => {
                                 {(roomName || 'C')[0].toUpperCase()}
                             </Text>
                         </View>
-                        <View>
-                            <Text style={styles.headerTitle}>{roomName || 'Chat'}</Text>
-                            {isTyping && (
-                                <Text style={styles.headerSubtitle}>typing...</Text>
-                            )}
-                        </View>
+
                     </View>
                 }
             />

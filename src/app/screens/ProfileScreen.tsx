@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, Switch, Alert, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, Switch, Alert, TouchableOpacity, ActivityIndicator, RefreshControl, Modal, Share, Pressable } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 
@@ -17,6 +17,7 @@ const ProfileScreen = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [isOnline, setIsOnline] = useState(true);
+    const [showReferralModal, setShowReferralModal] = useState(false);
 
     const fetchProfile = async () => {
         try {
@@ -67,6 +68,25 @@ const ProfileScreen = () => {
         );
     };
 
+    const shareReferral = async (code: string) => {
+        try {
+            const result = await Share.share({
+                message: `Hey! Join me on this amazing app using my referral code: ${code}. Download here: https://example.com/download`,
+            });
+            if (result.action === Share.sharedAction) {
+                if (result.activityType) {
+                    // shared with activity type of result.activityType
+                } else {
+                    // shared
+                }
+            } else if (result.action === Share.dismissedAction) {
+                // dismissed
+            }
+        } catch (error: any) {
+            Alert.alert(error.message);
+        }
+    };
+
     if (loading && !refreshing) {
         return (
             <View style={styles.loadingContainer}>
@@ -115,7 +135,7 @@ const ProfileScreen = () => {
                             <Ionicons name="camera" size={14} color="#FFF" />
                         </View>
                     </View>
-                    <Text style={styles.profileName}>{userData?.name || userData?.username || 'Shop Owner'}</Text>
+                    <Text style={styles.profileName}>{userData?.storeName || userData?.name || userData?.username || 'Shop Owner'}</Text>
                     <Text style={styles.profilePhone}>{userData?.phone || userData?.email || 'No contact info'}</Text>
                     <View style={styles.statusContainer}>
                         <Text style={styles.statusText}>{isOnline ? 'Online for Business' : 'Offline'}</Text>
@@ -154,22 +174,22 @@ const ProfileScreen = () => {
                     <MenuOption
                         icon="wallet"
                         title="My Earnings"
-                        subtitle={`${userData?.currency || '₹'} ${business.total_earnings?.toLocaleString() || '0'} Total Earned`}
+                        subtitle={`${userData?.currency || '₹'} ${business.total_earnings ? Number(business.total_earnings).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'} Total Earned`}
                         color="#32C766"
-                        onPress={() => console.log('Earnings')}
+                        onPress={() => navigation.navigate('Earnings')}
                     />
                     <MenuOption
                         icon="card"
                         title="Bank A/C Details"
                         subtitle={business.bank_name || "For Payouts"}
                         color="#6C63FF"
-                        onPress={() => console.log('Bank Details')}
+                        onPress={() => navigation.navigate('BankDetails')}
                     />
                     <MenuOption
                         icon="stats-chart"
                         title="Sales Reports"
                         color="#FF9500"
-                        onPress={() => console.log('Reports')}
+                        onPress={() => navigation.navigate('SalesReport')}
                     />
                 </View>
 
@@ -181,7 +201,7 @@ const ProfileScreen = () => {
                         title="My Referral Code"
                         subtitle={userData?.referralCode || "GET_CODE"}
                         color="#007AFF"
-                        onPress={() => console.log('Referral Code')}
+                        onPress={() => setShowReferralModal(true)}
                     />
                     <MenuOption
                         icon="images"
@@ -220,6 +240,57 @@ const ProfileScreen = () => {
                 <Text style={styles.appVersion}>Version 1.0.5 • Build 2024</Text>
 
             </ScrollView>
+
+            {/* Referral Code Modal */}
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={showReferralModal}
+                onRequestClose={() => setShowReferralModal(false)}
+            >
+                <Pressable
+                    style={styles.modalOverlay}
+                    onPress={() => setShowReferralModal(false)}
+                >
+                    <Pressable style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Your Referral Code</Text>
+                            <TouchableOpacity onPress={() => setShowReferralModal(false)}>
+                                <Ionicons name="close" size={24} color="#666" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.codeContainer}>
+                            <Text style={styles.codeText}>{userData?.referralCode || "GET_CODE"}</Text>
+                        </View>
+
+                        <Text style={styles.modalSubtitle}>
+                            Share this code with your friends and earn rewards when they join!
+                        </Text>
+
+                        <View style={styles.modalFooter}>
+                            <TouchableOpacity
+                                style={styles.viewContactsBtn}
+                                onPress={() => {
+                                    setShowReferralModal(false);
+                                    navigation.navigate('ReferralContacts');
+                                }}
+                            >
+                                <Ionicons name="people" size={20} color="#007AFF" />
+                                <Text style={styles.viewContactsText}>My Network</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.shareBtn}
+                                onPress={() => shareReferral(userData?.referralCode || "GET_CODE")}
+                            >
+                                <Ionicons name="share-social" size={20} color="#FFF" />
+                                <Text style={styles.shareBtnText}>Share Code</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </View>
     );
 };
@@ -338,7 +409,93 @@ const styles = StyleSheet.create({
         color: '#CCC',
         fontSize: 12,
         marginBottom: 30,
-    }
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        width: '100%',
+        padding: 24,
+        alignItems: 'center',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#1A1A1A',
+    },
+    codeContainer: {
+        backgroundColor: '#F5F7FA',
+        paddingVertical: 20,
+        paddingHorizontal: 40,
+        borderRadius: 16,
+        borderWidth: 2,
+        borderStyle: 'dashed',
+        borderColor: '#007AFF',
+        marginBottom: 16,
+    },
+    codeText: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#007AFF',
+        letterSpacing: 2,
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'center',
+        lineHeight: 20,
+        marginBottom: 30,
+    },
+    modalFooter: {
+        flexDirection: 'row',
+        width: '100%',
+        justifyContent: 'space-between',
+    },
+    viewContactsBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 14,
+        marginRight: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#007AFF',
+    },
+    viewContactsText: {
+        color: '#007AFF',
+        fontSize: 15,
+        fontWeight: 'bold',
+        marginLeft: 8,
+    },
+    shareBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 14,
+        backgroundColor: '#007AFF',
+        borderRadius: 12,
+    },
+    shareBtnText: {
+        color: '#FFF',
+        fontSize: 15,
+        fontWeight: 'bold',
+        marginLeft: 8,
+    },
 });
 
 export default ProfileScreen;
