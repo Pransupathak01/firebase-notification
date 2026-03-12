@@ -36,6 +36,13 @@ export const connectSocket = async (): Promise<Socket> => {
         console.log('✅ Socket connected:', socket?.id);
     });
 
+    // Centralized logging for outgoing events
+    const originalEmit = socket.emit.bind(socket);
+    socket.emit = (event: string, ...args: any[]) => {
+        console.log(`📤 [Socket Emit] ${event}:`, JSON.stringify(args[0], null, 2));
+        return originalEmit(event, ...args);
+    };
+
     socket.on('connect_error', (err) => {
         console.error('❌ Socket connection error:', err.message);
     });

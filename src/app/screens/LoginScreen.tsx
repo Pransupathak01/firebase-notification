@@ -57,10 +57,7 @@ const LoginScreen = () => {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <ScreenHeader
-                title="Sign In"
-                showBackButton={navigation.canGoBack()}
-            />
+
             <View style={styles.container}>
                 <Text style={styles.title}>Welcome Back!</Text>
 

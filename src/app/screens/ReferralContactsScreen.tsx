@@ -13,11 +13,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getReferralContacts } from '../services/chatService';
 import { useAuth } from '../context/AuthContext';
 import ScreenHeader from '../components/ScreenHeader';
+import { getSocket, connectSocket } from '../services/socketService';
 
 const ReferralContactsScreen = ({ navigation }: any) => {
     const { user } = useAuth();
     const currentUserId = user?._id || user?.id;
     const [contacts, setContacts] = useState<any[]>([]);
+    const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
 
     const fetchContacts = async () => {
@@ -35,6 +37,36 @@ const ReferralContactsScreen = ({ navigation }: any) => {
 
     useEffect(() => {
         fetchContacts();
+
+        const initSocket = async () => {
+            let socket = getSocket();
+            if (!socket?.connected) socket = await connectSocket();
+
+            socket.on('online_users', (users: any[]) => {
+                setOnlineUsers(new Set(users.map(u => u.userId)));
+            });
+
+            socket.on('user_joined', (data: any) => {
+                setOnlineUsers(prev => new Set([...Array.from(prev), data.userId]));
+            });
+
+            socket.on('user_left', (data: any) => {
+                setOnlineUsers(prev => {
+                    const next = new Set(prev);
+                    next.delete(data.userId);
+                    return next;
+                });
+            });
+        };
+
+        initSocket().catch(console.error);
+
+        return () => {
+            const socket = getSocket();
+            socket?.off('online_users');
+            socket?.off('user_joined');
+            socket?.off('user_left');
+        };
     }, []);
 
     const renderContact = ({ item }: any) => {
@@ -55,7 +87,9 @@ const ReferralContactsScreen = ({ navigation }: any) => {
             >
                 <View style={styles.avatar}>
                     <Text style={styles.avatarText}>{initial}</Text>
-                    {contactUser.status === 'online' && <View style={styles.onlineDot} />}
+                    {(contactUser.status === 'online' || onlineUsers.has(contactUser._id)) && (
+                        <View style={styles.onlineDot} />
+                    )}
                 </View>
                 <View style={styles.contactInfo}>
                     <Text style={styles.contactName}>{contactUser.username}</Text>

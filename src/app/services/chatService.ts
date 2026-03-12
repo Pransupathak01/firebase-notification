@@ -60,3 +60,26 @@ export const searchChatUsers = async (search: string) => {
     const { data } = await api.get(`/users?search=${search}`);
     return data;
 };
+
+// ─── Message Deletion ──────────────────────────────────────────────────────
+
+/**
+ * DELETE /api/chat/messages/:messageId/delete-for-me
+ * Hides the message only for the current user. Others still see it.
+ */
+export const deleteMessageForMe = async (messageId: string) => {
+    const { data } = await api.delete(`/messages/${messageId}/delete-for-me`);
+    return data; // { success, messageId, message }
+};
+
+/**
+ * DELETE /api/chat/messages/:messageId/delete-for-everyone
+ * Permanently wipes message content for all participants.
+ * Only the sender can call this (within 60 minutes of sending).
+ * On success the backend also emits "message_deleted_for_everyone" via socket.
+ */
+export const deleteMessageForEveryone = async (messageId: string) => {
+    const { data } = await api.delete(`/messages/${messageId}/delete-for-everyone`);
+    return data; // { success, messageId, roomId, message }
+};
+

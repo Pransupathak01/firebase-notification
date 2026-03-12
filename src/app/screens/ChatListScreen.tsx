@@ -18,6 +18,7 @@ const ChatRoomsScreen = ({ navigation }: any) => {
     const { user } = useAuth();
     const currentUserId = user?._id || user?.id;
     const [rooms, setRooms] = useState<any[]>([]); // We'll store 'contacts' here
+    const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
 
     const fetchRooms = async () => {
@@ -45,14 +46,38 @@ const ChatRoomsScreen = ({ navigation }: any) => {
         const initSocket = async () => {
             let socket = getSocket();
             if (!socket?.connected) socket = await connectSocket();
+
             socket.on('room_created', () => fetchRooms());
+
+            socket.on('online_users', (users: any[]) => {
+                setOnlineUsers(new Set(users.map(u => u.userId)));
+            });
+
+            socket.on('user_joined', (data: any) => {
+                setOnlineUsers(prev => new Set([...Array.from(prev), data.userId]));
+            });
+
+            socket.on('user_left', (data: any) => {
+                setOnlineUsers(prev => {
+                    const next = new Set(prev);
+                    next.delete(data.userId);
+                    return next;
+                });
+            });
         };
 
         initSocket().catch(console.error);
 
         // Refresh when screen comes back into focus
         const unsubscribe = navigation.addListener('focus', fetchRooms);
-        return () => unsubscribe();
+        return () => {
+            unsubscribe();
+            const socket = getSocket();
+            socket?.off('room_created');
+            socket?.off('online_users');
+            socket?.off('user_joined');
+            socket?.off('user_left');
+        };
     }, []);
 
     const renderRoom = ({ item }: any) => {
@@ -73,7 +98,9 @@ const ChatRoomsScreen = ({ navigation }: any) => {
             >
                 <View style={styles.avatar}>
                     <Text style={styles.avatarText}>{initial}</Text>
-                    {otherUser.status === 'online' && <View style={styles.onlineDot} />}
+                    {(otherUser.status === 'online' || onlineUsers.has(otherUser._id)) && (
+                        <View style={styles.onlineDot} />
+                    )}
                 </View>
                 <View style={styles.roomInfo}>
                     <View style={styles.roomHeader}>
