@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, RefreshControl, Modal } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigations/AppNavigator';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { getProducts, getCategories } from '../services/productsService';
 
-// Import Reusable Component
+// Import Hooks and Components
 import ProductCard from '../components/ProductCard';
 import { useCart } from '../context/CartContext';
 import ScreenHeader from '../components/ScreenHeader';
+import { useCategories, useInfiniteProducts, Product } from '../hooks/useProducts';
 
 const COLUMN_COUNT = 2;
 const SPACING = 12;
@@ -28,95 +28,49 @@ const ProductScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { totalItems } = useCart();
 
-    // State
-    const [products, setProducts] = useState<any[]>([]);
-    const [categories, setCategories] = useState<string[]>([]);
+    // Filters State
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedSort, setSelectedSort] = useState('popular');
     const [showSortModal, setShowSortModal] = useState(false);
 
-    const [currentPage, setCurrentPage] = useState(1);
-    const [hasMore, setHasMore] = useState(true);
-    const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
-
-    // Fetch categories on mount
-    useEffect(() => {
-        fetchCategories();
-    }, []);
-
-    // Fetch products when filters change
-    useEffect(() => {
-        setCurrentPage(1);
-        setProducts([]);
-        setHasMore(true);
-        fetchProducts(1, true);
-    }, [selectedCategory, selectedSort, searchQuery]);
-
-    const fetchCategories = async () => {
-        try {
-            const response = await getCategories();
-            if (response && response.success && response.data) {
-                setCategories(['All', ...response.data]);
-            }
-        } catch (error) {
-            console.error('Failed to fetch categories:', error);
-            setCategories(['All']);
+    // React Query Hooks
+    const { data: catData } = useCategories();
+    const categories = useMemo(() => {
+        if (catData && catData.success && catData.data) {
+            return ['All', ...catData.data];
         }
-    };
+        return ['All'];
+    }, [catData]);
 
-    const fetchProducts = async (page: number, isNewSearch: boolean = false) => {
-        try {
-            if (isNewSearch) {
-                setLoading(true);
-            } else {
-                setLoadingMore(true);
-            }
+    const productParams = useMemo(() => ({
+        category: selectedCategory !== 'All' ? selectedCategory : undefined,
+        search: searchQuery || undefined,
+        sort: selectedSort,
+        limit: 20,
+    }), [selectedCategory, searchQuery, selectedSort]);
 
-            const response = await getProducts({
-                category: selectedCategory !== 'All' ? selectedCategory : undefined,
-                search: searchQuery || undefined,
-                sort: selectedSort,
-                page: page,
-                limit: 20,
-            });
+    const {
+        data,
+        isLoading,
+        isFetchingNextPage,
+        hasNextPage,
+        fetchNextPage,
+        refetch,
+        isFetching
+    } = useInfiniteProducts(productParams);
 
-            console.log(`[ProductScreen] Page ${page} fetched. isNewSearch: ${isNewSearch}`);
-
-            if (response && response.success && response.data) {
-                const newProducts = response.data.products || [];
-                const pagination = response.data.pagination;
-
-                if (isNewSearch) {
-                    setProducts(newProducts);
-                } else {
-                    setProducts(prev => [...prev, ...newProducts]);
-                }
-
-                setHasMore(pagination?.hasMore ?? newProducts.length === 20);
-                setCurrentPage(page);
-            }
-        } catch (error) {
-            console.error('Failed to fetch products:', error);
-        } finally {
-            setLoading(false);
-            setLoadingMore(false);
-            setRefreshing(false);
-        }
-    };
+    const products = useMemo(() => {
+        return data?.pages.flatMap((page) => page.data?.products || []) || [];
+    }, [data]);
 
     const onRefresh = () => {
-        setRefreshing(true);
-        setCurrentPage(1);
-        fetchProducts(1, true);
+        refetch();
     };
 
     const onEndReached = () => {
-        if (!loadingMore && hasMore && !loading) {
-            console.log('[ProductScreen] Loading more products, page:', currentPage + 1);
-            fetchProducts(currentPage + 1, false);
+        if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
         }
     };
 
@@ -125,7 +79,7 @@ const ProductScreen = () => {
     };
 
     const renderFooter = () => {
-        if (loadingMore) {
+        if (isFetchingNextPage) {
             return (
                 <View style={styles.footerLoader}>
                     <ActivityIndicator size="small" color="#007AFF" />
@@ -133,7 +87,7 @@ const ProductScreen = () => {
                 </View>
             );
         }
-        if (!hasMore && products.length > 0) {
+        if (!hasNextPage && products.length > 0) {
             return (
                 <View style={styles.footerLoader}>
                     <Text style={styles.footerText}>No more products</Text>
@@ -207,23 +161,26 @@ const ProductScreen = () => {
             </View>
 
             {/* Product List */}
-            {loading ? (
+            {isLoading && !isFetching ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#007AFF" />
                 </View>
             ) : (
                 <FlashList
                     data={products}
-                    renderItem={({ item }) => <ProductCard item={item} />}
+                    renderItem={({ item }: { item: Product }) => (
+                        <ProductCard item={item} />
+                    )}
                     numColumns={COLUMN_COUNT}
-                    keyExtractor={(item) => item.id}
+                    // estimatedItemSize={250}
+                    keyExtractor={(item) => item._id || item.id}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                     onEndReached={onEndReached}
                     onEndReachedThreshold={0.5}
                     ListFooterComponent={renderFooter}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                        <RefreshControl refreshing={isFetching} onRefresh={onRefresh} />
                     }
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
@@ -397,7 +354,6 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#888',
     },
-    // Sort Modal
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.4)',
@@ -440,4 +396,3 @@ const styles = StyleSheet.create({
 });
 
 export default ProductScreen;
-

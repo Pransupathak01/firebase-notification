@@ -1,75 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, TextInput, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { getOrders } from '../services/ordersService';
 import ScreenHeader from '../components/ScreenHeader';
+import { useOrders } from '../hooks/useOrders';
 
 const FILTER_OPTIONS = ['Today', 'This Week', 'Last Week', 'This Month', 'Last Month'];
 
 const OrdersScreen = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedFilter, setSelectedFilter] = useState('This Week');
-    const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
-    const [allOrders, setAllOrders] = useState<any[]>([]); // Store fetched orders
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-    const [summary, setSummary] = useState<any>({ total_orders: 0, total_earnings: 0 });
 
-    const fetchOrders = async () => {
-        try {
-            setLoading(true);
-            const response = await getOrders(selectedFilter);
-            console.log("Order API Response:", JSON.stringify(response, null, 2));
+    // React Query Hook
+    const { data: response, isLoading, isFetching, refetch } = useOrders(selectedFilter);
 
-            if (response && response.success && response.data) {
-                const orders = response.data.orders || [];
-                setAllOrders(orders);
-                setFilteredOrders(orders);
+    // Filter and Process Data
+    const { allOrders, summary } = useMemo(() => {
+        if (response && response.success && response.data) {
+            const orders = response.data.orders || [];
+            let summaryData = response.data.summary;
 
-                // If backend provides summary use it, otherwise calculate
-                if (response.data.summary) {
-                    setSummary(response.data.summary);
-                } else {
-                    // Fallback calculation
-                    const total = orders.reduce((sum: number, item: any) => sum + (item.earnings || 0), 0);
-                    setSummary({
-                        total_orders: orders.length,
-                        total_earnings: total
-                    });
-                }
+            if (!summaryData) {
+                const total = orders.reduce((sum: number, item: any) => sum + (item.earnings || 0), 0);
+                summaryData = {
+                    total_orders: orders.length,
+                    total_earnings: total
+                };
             }
-        } catch (error) {
-            console.error('Failed to fetch orders:', error);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
+            return { allOrders: orders, summary: summaryData };
         }
-    };
+        return { allOrders: [], summary: { total_orders: 0, total_earnings: 0 } };
+    }, [response]);
 
-    useEffect(() => {
-        fetchOrders();
-    }, [selectedFilter]);
-
-    // Request new fetch when filter changes
-    // But verify if search logic should be client side or server side. Usually search is client side if list is small.
-    // The previous logic had a client-side search. I'll keep it client-side for the fetched list.
-
-    useEffect(() => {
-        if (searchQuery) {
-            const query = searchQuery.toUpperCase();
-            const result = allOrders.filter(item => {
-                const itemData = (item.id + item.customerName).toUpperCase();
-                return itemData.indexOf(query) > -1;
-            });
-            setFilteredOrders(result);
-        } else {
-            setFilteredOrders(allOrders);
-        }
+    const filteredOrders = useMemo(() => {
+        if (!searchQuery) return allOrders;
+        const query = searchQuery.toUpperCase();
+        return allOrders.filter((item: any) => {
+            const itemData = (item.id + (item.customerName || '')).toUpperCase();
+            return itemData.indexOf(query) > -1;
+        });
     }, [searchQuery, allOrders]);
 
     const onRefresh = () => {
-        setRefreshing(true);
-        fetchOrders();
+        refetch();
     };
 
     const getStatusColor = (status: string) => {
@@ -96,7 +68,6 @@ const OrdersScreen = () => {
 
     const formatCurrency = (amount: any) => {
         if (amount === undefined || amount === null) return '₹0';
-        // Handle if amount comes as string with symbols already
         if (typeof amount === 'string' && amount.includes('₹')) return amount;
         return `₹${Number(amount).toLocaleString()}`;
     };
@@ -111,8 +82,10 @@ const OrdersScreen = () => {
                         <Text style={styles.orderId}>ID: {item.id}</Text>
                     </View>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
-                    <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+                <View style={styles.statusBadgeWrapper}>
+                    <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
+                        <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+                    </View>
                 </View>
             </View>
 
@@ -181,12 +154,12 @@ const OrdersScreen = () => {
             <View style={styles.summaryContainer}>
                 <View style={styles.summaryItem}>
                     <Text style={styles.summaryLabel}>Orders</Text>
-                    <Text style={styles.summaryValue}>{summary.total_orders || filteredOrders.length}</Text>
+                    <Text style={styles.summaryValue}>{summary.total_orders}</Text>
                 </View>
                 <View style={styles.summaryDivider} />
                 <View style={styles.summaryItem}>
                     <Text style={styles.summaryLabel}>Total Earnings</Text>
-                    <Text style={styles.summaryValueTotal}>{formatCurrency(summary.total_earnings || 0)}</Text>
+                    <Text style={styles.summaryValueTotal}>{formatCurrency(summary.total_earnings)}</Text>
                 </View>
                 <View style={styles.summaryDivider} />
                 <View style={styles.summaryItem}>
@@ -195,7 +168,7 @@ const OrdersScreen = () => {
                 </View>
             </View>
 
-            {loading ? (
+            {isLoading && !isFetching ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#007AFF" />
                 </View>
@@ -207,7 +180,7 @@ const OrdersScreen = () => {
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                        <RefreshControl refreshing={isFetching} onRefresh={onRefresh} />
                     }
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
@@ -356,6 +329,9 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#888',
         marginTop: 2,
+    },
+    statusBadgeWrapper: {
+        // Wrapper for badge
     },
     statusBadge: {
         paddingHorizontal: 10,

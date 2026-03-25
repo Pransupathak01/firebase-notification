@@ -11,13 +11,16 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const MapScreen = () => {
     const [hasLocationPermission, setHasLocationPermission] = useState(false);
-    // initialLocation is stable and used ONLY for the first render of the HTML
     const [initialLocation, setInitialLocation] = useState<{ latitude: number; longitude: number } | null>(null);
     const [loading, setLoading] = useState(true);
     const webViewRef = useRef<WebView>(null);
 
-    // Use custom hook for pincode logic
-    const { pincode, address, loading: pincodeLoading, fetchPincode } = usePincode();
+    // Current coordinates for pincode reverse geocoding
+    const [currentCoords, setCurrentCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+
+    // Use custom hook for pincode logic (Declarative React Query)
+    const { data: pincodeData, isFetching: pincodeLoading } = usePincode(currentCoords?.latitude, currentCoords?.longitude);
+    const { pincode, address } = pincodeData || { pincode: null, address: null };
 
     const checkLocationPermission = async () => {
         if (Platform.OS === 'android') {
@@ -54,8 +57,7 @@ const MapScreen = () => {
             (position) => {
                 const { latitude, longitude } = position.coords;
                 setInitialLocation({ latitude, longitude });
-                // Fetch pincode using the hook
-                fetchPincode(latitude, longitude);
+                setCurrentCoords({ latitude, longitude });
                 setLoading(false);
             },
             (error) => {
@@ -67,14 +69,10 @@ const MapScreen = () => {
     };
 
     const handleRecenter = () => {
-        // Show immediate feedback if desired, or just call the function
         Geolocation.getCurrentPosition(
             (position) => {
                 const { latitude, longitude } = position.coords;
-                // We do NOT update initialLocation here, preventing reload
-
-                // Fetch new pincode using the hook
-                fetchPincode(latitude, longitude);
+                setCurrentCoords({ latitude, longitude });
 
                 if (webViewRef.current) {
                     const script = `
@@ -117,7 +115,6 @@ const MapScreen = () => {
             <style>
               body { margin: 0; padding: 0; background-color: #f2efe9; }
               html, body, #map { height: 100%; width: 100%; overflow: hidden; }
-              /* Force zoom controls to be visible and larger */
               .leaflet-control-zoom {
                   display: block !important;
                   border: 2px solid rgba(0,0,0,0.2) !important;
@@ -140,15 +137,14 @@ const MapScreen = () => {
                 markerZoomAnimation: true
               }).setView([${lat}, ${lng}], 15);
               
-              // Move zoom control to bottom left so it doesn't conflict with other UI
               map.zoomControl.setPosition('topleft');
 
               L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                keepBuffer: 18, // Preload much more surrounding area to avoid blank space on swipe 
+                keepBuffer: 18,
                 updateWhenZooming: false, 
-                updateInterval: 20 // Update more frequently during interaction
+                updateInterval: 20 
               }).addTo(map);
 
               var userMarker;
@@ -181,14 +177,14 @@ const MapScreen = () => {
             <PincodeDisplay
                 pincode={pincode}
                 address={address}
-                loading={pincodeLoading} // Pass loading state to component
+                loading={pincodeLoading}
             />
 
             <WebView
                 ref={webViewRef}
                 originWhitelist={['*']}
                 source={{ html: mapHTML }}
-                style={[styles.map, { backgroundColor: '#f2efe9' }]} // Match map color
+                style={[styles.map, { backgroundColor: '#f2efe9' }]}
                 containerStyle={{ backgroundColor: '#f2efe9' }}
             />
 

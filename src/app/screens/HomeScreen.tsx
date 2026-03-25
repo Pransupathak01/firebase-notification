@@ -1,74 +1,42 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Share, Alert, RefreshControl, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import SendNotificationForm from '../components/SendNotificationForm';
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
-import { getDashboardData } from '../services/dashboardService';
-import { RefreshControl } from 'react-native';
+import { useDashboard } from '../hooks/useDashboard';
 
 // Import Reusable Components
 import DashboardCard from '../components/DashboardCard';
 import QuickAction from '../components/QuickAction';
 import AddCustomerModal from '../components/AddCustomerModal';
-import { Share, Alert } from 'react-native';
 
 const HomeScreen = () => {
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [isAddCustomerVisible, setIsAddCustomerVisible] = useState(false);
     const navigation = useNavigation<any>();
-    const { notifications } = useNotifications();
     const { user } = useAuth();
-    const [dashboardData, setDashboardData] = useState<any>(null);
-    const [refreshing, setRefreshing] = useState(false);
-    const [loading, setLoading] = useState(true);
+    
+    // React Query Hook
+    const { data: qData, isLoading, isFetching, refetch } = useDashboard();
+    
+    const dashboardData = qData?.success ? qData.data : null;
 
-    const fetchDashboardData = async () => {
-        try {
-            const data = await getDashboardData();
-            console.log("Dashboard API Response:", JSON.stringify(data, null, 2));
-            if (data && data.success) {
-                setDashboardData(data.data);
-            }
-        } catch (error) {
-            console.error('Failed to fetch dashboard data:', error);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
+    const onRefresh = () => {
+        refetch();
     };
-
-    React.useEffect(() => {
-        fetchDashboardData();
-    }, []);
-
-    const onRefresh = React.useCallback(() => {
-        setRefreshing(true);
-        fetchDashboardData();
-    }, []);
 
     const stats = dashboardData?.quick_stats || {};
     const userProfile = dashboardData?.user_profile || {};
     const earnings = dashboardData?.earnings || {};
     const banner = dashboardData?.banner || {};
 
-    console.log("Parsed Earnings:", JSON.stringify(earnings, null, 2));
-
     const onShareCatalog = async () => {
         try {
-            const result = await Share.share({
+            await Share.share({
                 message: `Check out my store on SyncTalk! https://synctalk.in/shop/${user?.username || 'user'}`,
             });
-            if (result.action === Share.sharedAction) {
-                if (result.activityType) {
-                    // shared with activity type of result.activityType
-                } else {
-                    // shared
-                }
-            } else if (result.action === Share.dismissedAction) {
-                // dismissed
-            }
         } catch (error: any) {
             Alert.alert(error.message);
         }
@@ -85,10 +53,17 @@ const HomeScreen = () => {
     };
 
     const handleAddCustomer = (name: string, phone: string) => {
-        // Logic to add customer (e.g. API call)
         console.log(`Adding customer: ${name}, ${phone}`);
         Alert.alert("Success", "Customer added successfully!");
     };
+
+    if (isLoading && !dashboardData) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#007AFF" />
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -107,7 +82,7 @@ const HomeScreen = () => {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    <RefreshControl refreshing={isFetching} onRefresh={onRefresh} />
                 }
             >
 
@@ -222,6 +197,12 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#F5F7FA',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundColor: '#F5F7FA',
     },
     header: {

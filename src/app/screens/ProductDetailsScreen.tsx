@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, SafeAreaView, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -7,6 +7,7 @@ import { useCart } from '../context/CartContext';
 import analytics from '@react-native-firebase/analytics';
 import ZoomGallery from '../components/ZoomGallery';
 import ScreenHeader from '../components/ScreenHeader';
+import { useProduct } from '../hooks/useProducts';
 
 const { width } = Dimensions.get('window');
 
@@ -15,20 +16,28 @@ const AVAILABLE_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 const ProductDetailsScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
-    const { addToCart, loading: cartLoading } = useCart();
-    const { product } = route.params as { product: any } || {};
+    const { addToCart } = useCart();
+    
+    // Get initial product from params if available
+    const { product: initialProduct } = route.params as { product: any } || {};
+    const productId = initialProduct?.id || initialProduct?._id;
+
+    // Use React Query to fetch/sync product details
+    const { data: queryData, isLoading, isError } = useProduct(productId, initialProduct);
+    
+    // Use query data if available, fallback to initial product
+    const product = queryData?.data || initialProduct;
 
     const [selectedSize, setSelectedSize] = useState<string>('');
     const [addingToCart, setAddingToCart] = useState(false);
 
     const handleAddToCart = async () => {
         if (!product) return;
-        const productId = product._id || product.id;
+        const id = product._id || product.id;
 
-        // Track analytics
         try {
             await analytics().logEvent('add_to_cart', {
-                id: productId,
+                id: id,
                 item: product.name,
                 product_name: product.name,
                 size: selectedSize || '',
@@ -39,7 +48,7 @@ const ProductDetailsScreen = () => {
         }
 
         setAddingToCart(true);
-        const success = await addToCart(productId, 1, selectedSize);
+        const success = await addToCart(id, 1, selectedSize);
         setAddingToCart(false);
 
         if (success) {
@@ -47,10 +56,19 @@ const ProductDetailsScreen = () => {
         }
     };
 
-    if (!product) {
+    if (isLoading && !product) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#007AFF" />
+            </View>
+        );
+    }
+
+    if (!product || isError) {
         return (
             <View style={styles.errorContainer}>
-                <Text>Product not found</Text>
+                <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
+                <Text style={styles.errorText}>Product not found</Text>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={styles.backLink}>Go Back</Text>
                 </TouchableOpacity>
@@ -70,7 +88,6 @@ const ProductDetailsScreen = () => {
                 </View>
 
                 <View style={styles.content}>
-                    {/* Brand */}
                     {product.brand && (
                         <Text style={styles.brandText}>{product.brand}</Text>
                     )}
@@ -95,7 +112,6 @@ const ProductDetailsScreen = () => {
                         <Text style={styles.ratingText}>{product.rating || 4.8} ({product.reviews || '120'} reviews)</Text>
                     </View>
 
-                    {/* You Earn Badge */}
                     {product.youEarn > 0 && (
                         <View style={styles.youEarnBadge}>
                             <Ionicons name="wallet-outline" size={14} color="#34C759" />
@@ -103,7 +119,6 @@ const ProductDetailsScreen = () => {
                         </View>
                     )}
 
-                    {/* Size Selector */}
                     <Text style={styles.sectionTitle}>Select Size</Text>
                     <View style={styles.sizeContainer}>
                         {AVAILABLE_SIZES.map((size) => (
@@ -129,12 +144,12 @@ const ProductDetailsScreen = () => {
 
                     <Text style={styles.sectionTitle}>Description</Text>
                     <Text style={styles.description}>
-                        Experience premium quality with this outstanding product. Designed for comfort and durability, it features state-of-the-art materials and a sleek modern design that fits perfectly into your lifestyle.
+                        {product.description || "Experience premium quality with this outstanding product. Designed for comfort and durability, it features state-of-the-art materials and a sleek modern design that fits perfectly into your lifestyle."}
                     </Text>
 
                     <Text style={styles.sectionTitle}>Features</Text>
                     <View style={styles.features}>
-                        {['Premium Material', 'Modern Design', 'Durable', 'Lightweight'].map((feature, index) => (
+                        {(product.features || ['Premium Material', 'Modern Design', 'Durable', 'Lightweight']).map((feature: string, index: number) => (
                             <View key={index} style={styles.featureChip}>
                                 <Text style={styles.featureText}>{feature}</Text>
                             </View>
@@ -168,14 +183,27 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#FFFFFF',
     },
-    errorContainer: {
+    loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    errorText: {
+        fontSize: 18,
+        color: '#666',
+        marginTop: 16,
+    },
     backLink: {
         marginTop: 10,
         color: '#007AFF',
+        fontSize: 16,
+        fontWeight: '600',
     },
     scrollContent: {
         paddingBottom: 100,
@@ -186,14 +214,10 @@ const styles = StyleSheet.create({
         paddingVertical: 20,
         alignItems: 'center',
     },
-    image: {
-        width: '100%',
-        height: '100%',
-    },
     content: {
         padding: 24,
         backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 30, // Rounded corners for modern look
+        borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
         marginTop: -30,
     },
