@@ -10,11 +10,11 @@ import {
     Alert
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { registerUser } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import ScreenHeader from '../components/ScreenHeader';
+import { useAnalytics, useTrackScreen } from '../hooks/useAnalytics';
 
 const RegisterScreen = () => {
     const [firstName, setFirstName] = useState('');
@@ -26,6 +26,10 @@ const RegisterScreen = () => {
     const navigation = useNavigation<any>();
     const { register } = useAuth();
     const { fcmToken, updateFCMTokenBackend } = useNotifications();
+    const { signUp: logSignUpAnalytics } = useAnalytics();
+
+    // Track Screen
+    useTrackScreen('Register', 'RegisterScreen');
 
     const handleRegister = async () => {
         if (!firstName || !lastName || !email || !password) {
@@ -45,6 +49,9 @@ const RegisterScreen = () => {
             });
 
             if (response.token) {
+                // Track Registration Success
+                await logSignUpAnalytics('email_password');
+
                 // Store session and update context
                 await register(response, response.token);
 

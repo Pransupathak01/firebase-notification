@@ -14,32 +14,37 @@ import { SocketManager } from './src/app/components/SocketManager';
 
 const queryClient = new QueryClient();
 
+import { Provider } from 'react-redux';
+import store from './src/app/redux/store';
+
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <StatusBar
-            barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-            backgroundColor={isDarkMode ? '#000000' : '#ffffff'}
-          />
-          <AuthProvider>
-            <SocketManager />
-            <NotificationProvider>
-              <CartProvider>
-                <SafeAreaView style={{ flex: 1 }}>
-                  <NavigationContainer>
-                    <AppNavigator />
-                  </NavigationContainer>
-                </SafeAreaView>
-              </CartProvider>
-            </NotificationProvider>
-          </AuthProvider>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
-    </QueryClientProvider>
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <SafeAreaProvider>
+            <StatusBar
+              barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+              backgroundColor={isDarkMode ? '#000000' : '#ffffff'}
+            />
+            <AuthProvider>
+              <SocketManager />
+              <NotificationProvider>
+                <CartProvider>
+                  <SafeAreaView style={{ flex: 1 }}>
+                    <NavigationContainer>
+                      <AppNavigator />
+                    </NavigationContainer>
+                  </SafeAreaView>
+                </CartProvider>
+              </NotificationProvider>
+            </AuthProvider>
+          </SafeAreaProvider>
+        </GestureHandlerRootView>
+      </QueryClientProvider>
+    </Provider>
   );
 }
 

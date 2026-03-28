@@ -108,6 +108,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.06,
         shadowRadius: 10,
         elevation: 3,
+        marginBottom: 12
     },
     leftColumn: {
         alignItems: 'center',

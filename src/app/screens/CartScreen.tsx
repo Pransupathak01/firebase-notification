@@ -27,6 +27,7 @@ import CartStep from '../components/checkout/CartStep';
 import AddressSelectionStep from '../components/checkout/AddressSelectionStep';
 import FinalCheckoutStep from '../components/checkout/FinalCheckoutStep';
 import ScreenHeader from '../components/ScreenHeader';
+import { useAnalytics, useTrackScreen } from '../hooks/useAnalytics';
 
 type CheckoutStep = 1 | 2 | 3;
 
@@ -47,6 +48,8 @@ const CartScreen = () => {
         refreshCart,
     } = useCart();
 
+    const { beginCheckout, purchase, couponApplied, custom: logEvent } = useAnalytics();
+
     const [currentStep, setCurrentStep] = useState<CheckoutStep>(1);
     const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
     const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
@@ -56,17 +59,16 @@ const CartScreen = () => {
     const [appliedReferral, setAppliedReferral] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // Form state for Address
-    const [showAddressForm, setShowAddressForm] = useState(false);
-    const [newAddress, setNewAddress] = useState({
-        name: '',
-        phone: '',
-        street: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        type: 'Home' as 'Home' | 'Work' | 'Other'
-    });
+    // Track Screens per Step
+    const getScreenName = () => {
+        switch (currentStep) {
+            case 1: return 'Cart';
+            case 2: return 'Checkout - Address';
+            case 3: return 'Checkout - Payment';
+            default: return 'Cart';
+        }
+    };
+    useTrackScreen(getScreenName(), 'CartScreen');
 
     // Data Fetching
     useEffect(() => {
@@ -78,12 +80,17 @@ const CartScreen = () => {
                 ]);
                 if (addrRes.success) setAddresses(addrRes.data);
                 if (couponRes.success) setCoupons(couponRes.data);
-            } catch (err) {
-                console.error('Failed to load checkout data:', err);
-            }
+            } catch (err) { console.error('Failed to load checkout data:', err); }
         };
         loadCheckoutData();
     }, []);
+
+    // Track "Begin Checkout"
+    useEffect(() => {
+        if (currentStep === 2 && cartItems.length > 0) {
+            beginCheckout(totalPrice, cartItems);
+        }
+    }, [currentStep]);
 
     const handleSaveAddress = async () => {
         const { name, phone, street, city, state, zipCode } = newAddress;
@@ -99,9 +106,8 @@ const CartScreen = () => {
                 setAddresses([...addresses, res.data]);
                 setSelectedAddress(res.data);
                 setShowAddressForm(false);
-                setNewAddress({
-                    name: '', phone: '', street: '', city: '', state: '', zipCode: '', type: 'Home'
-                });
+                setNewAddress({ name: '', phone: '', street: '', city: '', state: '', zipCode: '', type: 'Home' });
+                logEvent('address_saved', { success: true });
             }
         } catch (err: any) {
             Alert.alert('Error', err.message || 'Failed to save address');
@@ -113,46 +119,40 @@ const CartScreen = () => {
     const handlePlaceOrder = async () => {
         if (isProcessing || !selectedAddress) return;
 
+        logEvent('pay_now_clicked', {
+            total_price: calculateFinalTotal(),
+            items_count: cartItems.length,
+            coupon: selectedCoupon?.code || 'none'
+        });
+
         try {
             setIsProcessing(true);
-
-            // 1. Get user session for prefill
             const session = await getUserSession();
             if (!session) {
-                Alert.alert('Error', 'User session not found. Please log in again.');
+                Alert.alert('Error', 'User session not found.');
                 setIsProcessing(false);
                 return;
             }
 
-            // 2. Get Order ID from backend
             const finalTotal = calculateFinalTotal();
             const orderRes = await createRazorpayOrder(finalTotal);
 
-            // The backend returns the Razorpay order object directly, which has an 'id'
-            if (!orderRes || !orderRes.id) {
-                throw new Error(orderRes?.message || 'Failed to initialize payment');
-            }
+            if (!orderRes || !orderRes.id) throw new Error(orderRes?.message || 'Failed to initialize payment');
 
-            // 3. Open Razorpay Checkout
             const options = {
                 description: 'Order from SyncTalk',
-                image: 'https://your-logo-url.com/logo.png', // Replace with your app logo
+                image: 'https://synctalk.in/logo.png',
                 currency: orderRes.currency || 'INR',
                 key: AppConfig.RAZORPAY_KEY,
                 amount: orderRes.amount,
-                name: 'SyncTalk App',
+                name: 'SyncTalk',
                 order_id: orderRes.id,
-                prefill: {
-                    email: session.user.email,
-                    contact: session.user.phone || '',
-                    name: session.user.name
-                },
+                prefill: { email: session.user.email, contact: session.user.phone || '', name: session.user.name },
                 theme: { color: '#007AFF' }
             };
 
             const paymentData = await RazorpayCheckout.open(options);
 
-            // 4. Verify payment and place official order
             const res = await verifyPaymentAndPlaceOrder({
                 addressId: selectedAddress.id,
                 couponCode: selectedCoupon?.code,
@@ -164,6 +164,8 @@ const CartScreen = () => {
             });
 
             if (res.success) {
+                purchase(paymentData.razorpay_payment_id, finalTotal, cartItems);
+
                 Alert.alert('Success', 'Order placed successfully!', [
                     {
                         text: 'OK', onPress: () => {
@@ -185,37 +187,25 @@ const CartScreen = () => {
         } catch (err: any) {
             setIsProcessing(false);
             console.error('Payment Error:', err);
-            // Razorpay returns error object on cancel/fail
-            if (err.code) {
-                Alert.alert('Payment Cancelled', 'Payment process was interrupted.');
-            } else {
-                Alert.alert('Checkout Error', err.message || 'An error occurred during payment.');
-            }
+            logEvent('payment_failed', { error: err.message || 'Unknown' });
+            if (err.code) Alert.alert('Payment Cancelled', 'Payment process was interrupted.');
+            else Alert.alert('Checkout Error', err.message || 'An error occurred during payment.');
         }
     };
 
     const handleApplyReferral = async () => {
         const code = referralCode.trim();
-        if (!code) {
-            Alert.alert('Error', 'Please enter a referral code');
-            return;
-        }
-
-        if (!totalPrice || totalPrice <= 0) {
-            Alert.alert('Price Error', 'Price not detected. Please refresh your cart or add items.');
-            return;
-        }
-
+        if (!code) return Alert.alert('Error', 'Please enter a referral code');
         try {
             setIsProcessing(true);
             const res = await validateCheckoutAPI(code, selectedCoupon?.code);
-
             if (res.success) {
                 setAppliedReferral(code);
+                logEvent('referral_applied', { code });
                 Alert.alert('Success', 'Referral code applied successfully!');
             }
         } catch (err: any) {
-            Alert.alert('Invalid Code', err.message || 'The referral code you entered is invalid.');
+            Alert.alert('Invalid Code', err.message || 'Invalid code.');
             setAppliedReferral('');
         } finally {
             setIsProcessing(false);
@@ -231,58 +221,41 @@ const CartScreen = () => {
     const calculateFinalTotal = () => {
         let total = totalPrice;
         if (selectedCoupon) {
-            if (selectedCoupon.type === 'percentage') {
-                total = total - (total * selectedCoupon.discount / 100);
-            } else {
-                total = Math.max(0, total - selectedCoupon.discount);
-            }
+            if (selectedCoupon.type === 'percentage') total = total - (total * selectedCoupon.discount / 100);
+            else total = Math.max(0, total - selectedCoupon.discount);
         }
-
         if (appliedReferral !== '') {
-            let referralPercentage = 0;
-            if (totalPrice < 1000) referralPercentage = 5;
-            else if (totalPrice < 2000) referralPercentage = 7;
-            else if (totalPrice < 5000) referralPercentage = 8;
-            else referralPercentage = 10;
-
+            let referralPercentage = totalPrice < 1000 ? 5 : totalPrice < 2000 ? 7 : totalPrice < 5000 ? 8 : 10;
             const referralDiscount = (totalPrice * referralPercentage) / 100;
             total = Math.max(0, total - referralDiscount);
         }
-
         return total;
     };
 
     const handleClearCart = () => {
         Alert.alert('Clear Cart', 'Are you sure?', [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Clear', style: 'destructive', onPress: () => clearCart() },
+            { text: 'Clear', style: 'destructive', onPress: () => { clearCart(); logEvent('cart_cleared'); }},
         ]);
     };
+
+    const [showAddressForm, setShowAddressForm] = useState(false);
+    const [newAddress, setNewAddress] = useState({ name: '', phone: '', street: '', city: '', state: '', zipCode: '', type: 'Home' as any });
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                {/* Header */}
                 <ScreenHeader
                     title={currentStep === 1 ? 'My Cart' : currentStep === 2 ? 'Delivery Address' : 'Final Checkout'}
                     showBackButton={true}
                     onBackPress={() => currentStep > 1 ? setCurrentStep((currentStep - 1) as CheckoutStep) : navigation.goBack()}
-                    rightElement={
-                        currentStep === 1 && cartItems.length > 0 ? (
-                            <TouchableOpacity onPress={handleClearCart} style={styles.clearButton}>
-                                <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-                            </TouchableOpacity>
-                        ) : null
-                    }
+                    rightElement={currentStep === 1 && cartItems.length > 0 ? (
+                        <TouchableOpacity onPress={handleClearCart} style={styles.clearButton}>
+                            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                        </TouchableOpacity>
+                    ) : null}
                 />
-
-                {/* Main Content */}
-                {loading && cartItems.length === 0 ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color="#007AFF" />
-                        <Text style={styles.loadingText}>Loading...</Text>
-                    </View>
-                ) : (
+                {!loading || cartItems.length > 0 ? (
                     <>
                         {currentStep === 1 && (
                             <CartStep
@@ -297,7 +270,10 @@ const CartScreen = () => {
                                 onIncrement={incrementItem}
                                 onDecrement={decrementItem}
                                 onRemove={removeFromCart}
-                                onNext={() => setCurrentStep(2)}
+                                onNext={() => {
+                                    logEvent('checkout_button_clicked');
+                                    setCurrentStep(2);
+                                }}
                                 onShopNow={() => navigation.goBack()}
                                 calculateFinalTotal={calculateFinalTotal}
                                 selectedCoupon={selectedCoupon}
@@ -315,7 +291,14 @@ const CartScreen = () => {
                                 onShowForm={setShowAddressForm}
                                 onUpdateNewAddress={setNewAddress}
                                 onSaveAddress={handleSaveAddress}
-                                onNext={() => selectedAddress ? setCurrentStep(3) : Alert.alert('Selection Required', 'Please select an address')}
+                                onNext={() => {
+                                    if (selectedAddress) {
+                                        logEvent('address_selected_clicked');
+                                        setCurrentStep(3);
+                                    } else {
+                                        Alert.alert('Selection Required', 'Please select an address');
+                                    }
+                                }}
                             />
                         )}
                         {currentStep === 3 && (
@@ -333,7 +316,14 @@ const CartScreen = () => {
                                 totalEarnings={totalEarnings}
                                 onPrev={() => setCurrentStep(2)}
                                 onChangeAddress={() => setCurrentStep(2)}
-                                onToggleCoupon={(c) => setSelectedCoupon(selectedCoupon?.id === c.id ? null : c)}
+                                onToggleCoupon={(c) => {
+                                    const isNew = selectedCoupon?.id !== c.id;
+                                    setSelectedCoupon(isNew ? c : null);
+                                    if (isNew) {
+                                        // TRACK COUPON ENGAGEMENT
+                                        couponApplied(c.code, c.discount);
+                                    }
+                                }}
                                 referralCode={referralCode}
                                 appliedReferral={appliedReferral}
                                 onReferralCodeChange={setReferralCode}
@@ -344,6 +334,11 @@ const CartScreen = () => {
                             />
                         )}
                     </>
+                ) : (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#007AFF" />
+                        <Text style={styles.loadingText}>Loading...</Text>
+                    </View>
                 )}
             </View>
         </SafeAreaView>
@@ -351,27 +346,11 @@ const CartScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-    },
-    container: {
-        flex: 1,
-        backgroundColor: '#F8F9FB',
-    },
-    clearButton: {
-        padding: 8,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    loadingText: {
-        marginTop: 12,
-        fontSize: 14,
-        color: '#999',
-    },
+    safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+    container: { flex: 1, backgroundColor: '#F8F9FB' },
+    clearButton: { padding: 8 },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    loadingText: { marginTop: 12, fontSize: 14, color: '#999' },
 });
 
 export default CartScreen;

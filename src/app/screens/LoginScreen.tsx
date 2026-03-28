@@ -10,11 +10,10 @@ import {
     Alert
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { loginUser } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
-import ScreenHeader from '../components/ScreenHeader';
+import { useAnalytics, useTrackScreen } from '../hooks/useAnalytics';
 
 const LoginScreen = () => {
     const [email, setEmail] = useState('');
@@ -23,6 +22,10 @@ const LoginScreen = () => {
     const navigation = useNavigation<any>();
     const { login } = useAuth();
     const { fcmToken, updateFCMTokenBackend } = useNotifications();
+    const { login: logLoginAnalytics } = useAnalytics();
+
+    // Track Screen
+    useTrackScreen('Login', 'LoginScreen');
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -35,6 +38,9 @@ const LoginScreen = () => {
             const response = await loginUser({ email, password });
 
             if (response.token) {
+                // Track Login Success
+                await logLoginAnalytics('email_password');
+
                 // Store session and update context
                 await login(response, response.token);
 
@@ -53,11 +59,8 @@ const LoginScreen = () => {
         }
     };
 
-    const canGoBack = navigation.canGoBack();
-
     return (
         <SafeAreaView style={styles.safeArea}>
-
             <View style={styles.container}>
                 <Text style={styles.title}>Welcome Back!</Text>
 

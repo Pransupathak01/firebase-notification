@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, SafeAreaView, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 import { useCart } from '../context/CartContext';
-import analytics from '@react-native-firebase/analytics';
 import ZoomGallery from '../components/ZoomGallery';
 import ScreenHeader from '../components/ScreenHeader';
 import { useProduct } from '../hooks/useProducts';
+import { useAnalytics, useTrackScreen } from '../hooks/useAnalytics';
 
 const { width } = Dimensions.get('window');
 
@@ -17,6 +17,7 @@ const ProductDetailsScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const { addToCart } = useCart();
+    const { viewItem, addToCart: logAddToCart, custom: logEvent } = useAnalytics();
     
     // Get initial product from params if available
     const { product: initialProduct } = route.params as { product: any } || {};
@@ -28,6 +29,16 @@ const ProductDetailsScreen = () => {
     // Use query data if available, fallback to initial product
     const product = queryData?.data || initialProduct;
 
+    // Track Screen View
+    useTrackScreen('Product Details', 'ProductDetailsScreen');
+
+    // Track Product View on load
+    useEffect(() => {
+        if (product) {
+            viewItem(product);
+        }
+    }, [product?._id, product?.id]);
+
     const [selectedSize, setSelectedSize] = useState<string>('');
     const [addingToCart, setAddingToCart] = useState(false);
 
@@ -35,17 +46,16 @@ const ProductDetailsScreen = () => {
         if (!product) return;
         const id = product._id || product.id;
 
-        try {
-            await analytics().logEvent('add_to_cart', {
-                id: id,
-                item: product.name,
-                product_name: product.name,
-                size: selectedSize || '',
-                timestamp: new Date().toISOString(),
-            });
-        } catch (e) {
-            console.warn('Analytics event failed', e);
-        }
+        // Custom Click Event
+        logEvent('add_to_cart_clicked', {
+            product_id: id,
+            product_name: product.name,
+            selected_size: selectedSize || 'none',
+            price: product.price
+        });
+
+        // Standard GA4 event
+        logAddToCart(product, 1, selectedSize);
 
         setAddingToCart(true);
         const success = await addToCart(id, 1, selectedSize);
