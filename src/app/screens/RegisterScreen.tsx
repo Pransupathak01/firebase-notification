@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import ScreenHeader from '../components/ScreenHeader';
 import { useAnalytics, useTrackScreen } from '../hooks/useAnalytics';
+import { useTranslation } from 'react-i18next';
 
 const RegisterScreen = () => {
     const [firstName, setFirstName] = useState('');
@@ -27,6 +28,7 @@ const RegisterScreen = () => {
     const { register } = useAuth();
     const { fcmToken, updateFCMTokenBackend } = useNotifications();
     const { signUp: logSignUpAnalytics } = useAnalytics();
+    const { t } = useTranslation();
 
     // Track Screen
     useTrackScreen('Register', 'RegisterScreen');
@@ -73,30 +75,30 @@ const RegisterScreen = () => {
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScreenHeader
-                title="Create Account"
+                title={t('create_account')}
                 showBackButton={true}
             />
             <View style={styles.container}>
-                <Text style={styles.title}>Join Us Today!</Text>
+                <Text style={styles.title}>{t('join_us_today')}</Text>
 
                 <View style={styles.inputContainer}>
                     <TextInput
                         style={styles.input}
-                        placeholder="First Name"
+                        placeholder={t('first_name')}
                         placeholderTextColor="#888"
                         value={firstName}
                         onChangeText={setFirstName}
                     />
                     <TextInput
                         style={styles.input}
-                        placeholder="Last Name"
+                        placeholder={t('last_name')}
                         placeholderTextColor="#888"
                         value={lastName}
                         onChangeText={setLastName}
                     />
                     <TextInput
                         style={styles.input}
-                        placeholder="Email"
+                        placeholder={t('email')}
                         placeholderTextColor="#888"
                         value={email}
                         onChangeText={setEmail}
@@ -105,7 +107,7 @@ const RegisterScreen = () => {
                     />
                     <TextInput
                         style={styles.input}
-                        placeholder="Password"
+                        placeholder={t('password')}
                         placeholderTextColor="#888"
                         value={password}
                         onChangeText={setPassword}
@@ -113,7 +115,7 @@ const RegisterScreen = () => {
                     />
                     <TextInput
                         style={styles.input}
-                        placeholder="Referral Code (Optional)"
+                        placeholder={t('referral_code_optional')}
                         placeholderTextColor="#888"
                         value={referredBy}
                         onChangeText={setReferredBy}
@@ -129,12 +131,12 @@ const RegisterScreen = () => {
                     {loading ? (
                         <ActivityIndicator color="#fff" />
                     ) : (
-                        <Text style={styles.buttonText}>Register</Text>
+                        <Text style={styles.buttonText}>{t('register')}</Text>
                     )}
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                    <Text style={styles.linkText}>Already have an account? Login</Text>
+                    <Text style={styles.linkText}>{t('already_have_account')}</Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>

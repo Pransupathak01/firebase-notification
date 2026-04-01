@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { SocketManager } from './src/app/components/SocketManager';
+import './src/app/config/i18n';
 
 const queryClient = new QueryClient();
 

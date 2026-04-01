@@ -7,10 +7,12 @@ import MapScreen from '../screens/MapScreen';
 import OrdersScreen from '../screens/OrdersScreen';
 import ChatRoomsScreen from '../screens/ChatListScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator = () => {
+    const { t } = useTranslation();
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
@@ -38,12 +40,12 @@ const BottomTabNavigator = () => {
                 headerShown: false,
             })}
         >
-            <Tab.Screen name="Home" component={HomeScreen} />
-            {/* <Tab.Screen name="Map" component={MapScreen} /> */}
-            <Tab.Screen name="Orders" component={OrdersScreen} />
-            <Tab.Screen name="Product" component={ProductScreen} />
-            <Tab.Screen name="Notifications" component={NotificationsScreen} />
-            <Tab.Screen name="Chat" component={ChatRoomsScreen} />
+            <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: t('home') }} />
+            {/* <Tab.Screen name="Map" component={MapScreen} options={{ tabBarLabel: t('map') }} /> */}
+            <Tab.Screen name="Orders" component={OrdersScreen} options={{ tabBarLabel: t('orders') }} />
+            <Tab.Screen name="Product" component={ProductScreen} options={{ tabBarLabel: t('product') }} />
+            <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ tabBarLabel: t('notifications') }} />
+            <Tab.Screen name="Chat" component={ChatRoomsScreen} options={{ tabBarLabel: t('chat') }} />
         </Tab.Navigator>
     );
 };

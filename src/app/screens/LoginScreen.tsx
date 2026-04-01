@@ -14,6 +14,7 @@ import { loginUser } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { useAnalytics, useTrackScreen } from '../hooks/useAnalytics';
+import { useTranslation } from 'react-i18next';
 
 const LoginScreen = () => {
     const [email, setEmail] = useState('');
@@ -23,6 +24,7 @@ const LoginScreen = () => {
     const { login } = useAuth();
     const { fcmToken, updateFCMTokenBackend } = useNotifications();
     const { login: logLoginAnalytics } = useAnalytics();
+    const { t } = useTranslation();
 
     // Track Screen
     useTrackScreen('Login', 'LoginScreen');
@@ -62,12 +64,12 @@ const LoginScreen = () => {
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                <Text style={styles.title}>Welcome Back!</Text>
+                <Text style={styles.title}>{t('welcome_back')}</Text>
 
                 <View style={styles.inputContainer}>
                     <TextInput
                         style={styles.input}
-                        placeholder="Email"
+                        placeholder={t('email')}
                         placeholderTextColor="#888"
                         value={email}
                         onChangeText={setEmail}
@@ -76,7 +78,7 @@ const LoginScreen = () => {
                     />
                     <TextInput
                         style={styles.input}
-                        placeholder="Password"
+                        placeholder={t('password')}
                         placeholderTextColor="#888"
                         value={password}
                         onChangeText={setPassword}
@@ -92,12 +94,12 @@ const LoginScreen = () => {
                     {loading ? (
                         <ActivityIndicator color="#fff" />
                     ) : (
-                        <Text style={styles.buttonText}>Login</Text>
+                        <Text style={styles.buttonText}>{t('login')}</Text>
                     )}
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                    <Text style={styles.linkText}>Don't have an account? Sign Up</Text>
+                    <Text style={styles.linkText}>{t('dont_have_account')}</Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>

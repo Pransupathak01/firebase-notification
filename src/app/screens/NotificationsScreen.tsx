@@ -9,6 +9,7 @@ import {
     ActivityIndicator,
     RefreshControl,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNotifications } from '../context/NotificationContext';
 import ScreenHeader from '../components/ScreenHeader';
@@ -23,6 +24,7 @@ import {
 const NotificationsScreen = () => {
     const [notifications, setNotifications] = useState<BackendNotification[]>([]);
     const [loading, setLoading] = useState(true);
+    const { t } = useTranslation();
     const [refreshing, setRefreshing] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
@@ -117,7 +119,7 @@ const NotificationsScreen = () => {
     if (loading) {
         return (
             <View style={styles.container}>
-                <ScreenHeader title="Notifications" />
+                <ScreenHeader title={t('notifications')} />
                 <View style={styles.centered}>
                     <ActivityIndicator size="large" color="#6C63FF" />
                 </View>
@@ -129,11 +131,11 @@ const NotificationsScreen = () => {
     return (
         <View style={styles.container}>
             <ScreenHeader
-                title="Notifications"
+                title={t('notifications')}
                 rightElement={
                     unreadCount > 0 ? (
                         <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.markAllBtn}>
-                            <Text style={styles.markAllText}>Mark all read</Text>
+                            <Text style={styles.markAllText}>{t('mark_all_read')}</Text>
                         </TouchableOpacity>
                     ) : undefined
                 }
@@ -142,7 +144,7 @@ const NotificationsScreen = () => {
             {unreadCount > 0 && (
                 <View style={styles.unreadBanner}>
                     <Text style={styles.unreadBannerText}>
-                        {unreadCount} unread notification{unreadCount > 1 ? 's' : ''}
+                        {unreadCount} {t('unread_notifications')}
                     </Text>
                 </View>
             )}
@@ -177,8 +179,8 @@ const NotificationsScreen = () => {
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
                         <Ionicons name="notifications-off-outline" size={64} color="#CCC" />
-                        <Text style={styles.emptyText}>No notifications yet</Text>
-                        <Text style={styles.emptySubText}>We'll notify you when something arrives</Text>
+                        <Text style={styles.emptyText}>{t('no_notifications_yet')}</Text>
+                        <Text style={styles.emptySubText}>{t('will_notify_you')}</Text>
                     </View>
                 }
             />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Share } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -27,6 +28,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ item }) => {
     const [imageError, setImageError] = useState(false);
     const navigation = useNavigation<any>();
+    const { t } = useTranslation();
 
     // Get display image: prefer imageUrl from API, fallback to images array
     const displayImage = item.imageUrl || (item.images && item.images.length > 0 ? item.images[0] : null);
@@ -63,7 +65,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ item }) => {
                     />
                     {item.discount && item.discount > 0 ? (
                         <View style={styles.discountBadge}>
-                            <Text style={styles.discountText}>{item.discount}% OFF</Text>
+                            <Text style={styles.discountText}>{item.discount}% {t('off')}</Text>
                         </View>
                     ) : null}
                     <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
@@ -80,7 +82,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ item }) => {
                             ) : null}
                         </View>
                         <Text style={styles.earnings}>
-                            Earn ₹{item.youEarn || 0}
+                            {t('earn')} {formatPrice(item.youEarn || 0)}
                         </Text>
                     </View>
                 </View>

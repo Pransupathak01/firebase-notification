@@ -11,25 +11,27 @@ import ProductCard from '../components/ProductCard';
 import { useCart } from '../context/CartContext';
 import ScreenHeader from '../components/ScreenHeader';
 import { useCategories, useInfiniteProducts, Product } from '../hooks/useProducts';
+import { useTranslation } from 'react-i18next';
 
 const COLUMN_COUNT = 2;
 const SPACING = 12;
 const HALF_SPACING = SPACING / 2;
 
-const SORT_OPTIONS = [
-    { label: 'Popular', value: 'popular' },
-    { label: 'Price: Low to High', value: 'price_low' },
-    { label: 'Price: High to Low', value: 'price_high' },
-    { label: 'Biggest Discount', value: 'discount' },
-    { label: 'Highest Earning', value: 'commission' },
-];
-
 const ProductScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { totalItems } = useCart();
+    const { t } = useTranslation();
+
+    const SORT_OPTIONS = [
+        { label: t('popular'), value: 'popular' },
+        { label: t('price_low_high'), value: 'price_low' },
+        { label: t('price_high_low'), value: 'price_high' },
+        { label: t('biggest_discount'), value: 'discount' },
+        { label: t('highest_earning'), value: 'commission' },
+    ];
 
     // Filters State
-    const [selectedCategory, setSelectedCategory] = useState('All');
+    const [selectedCategory, setSelectedCategory] = useState(t('all'));
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedSort, setSelectedSort] = useState('popular');
     const [showSortModal, setShowSortModal] = useState(false);
@@ -38,17 +40,17 @@ const ProductScreen = () => {
     const { data: catData } = useCategories();
     const categories = useMemo(() => {
         if (catData && catData.success && catData.data) {
-            return ['All', ...catData.data];
+            return [t('all'), ...catData.data];
         }
-        return ['All'];
-    }, [catData]);
+        return [t('all')];
+    }, [catData, t]);
 
     const productParams = useMemo(() => ({
-        category: selectedCategory !== 'All' ? selectedCategory : undefined,
+        category: selectedCategory !== t('all') ? selectedCategory : undefined,
         search: searchQuery || undefined,
         sort: selectedSort,
         limit: 20,
-    }), [selectedCategory, searchQuery, selectedSort]);
+    }), [selectedCategory, searchQuery, selectedSort, t]);
 
     const {
         data,
@@ -83,14 +85,14 @@ const ProductScreen = () => {
             return (
                 <View style={styles.footerLoader}>
                     <ActivityIndicator size="small" color="#007AFF" />
-                    <Text style={styles.footerText}>Loading more...</Text>
+                    <Text style={styles.footerText}>{t('loading_more')}</Text>
                 </View>
             );
         }
         if (!hasNextPage && products.length > 0) {
             return (
                 <View style={styles.footerLoader}>
-                    <Text style={styles.footerText}>No more products</Text>
+                    <Text style={styles.footerText}>{t('no_more_products')}</Text>
                 </View>
             );
         }
@@ -101,7 +103,7 @@ const ProductScreen = () => {
         <View style={styles.container}>
             {/* Header */}
             <ScreenHeader
-                title="Products"
+                title={t('products')}
                 rightElement={
                     <TouchableOpacity style={styles.cartButton} onPress={() => navigation.navigate('Cart')}>
                         <Ionicons name="cart" size={26} color="#1A1A1A" />
@@ -119,7 +121,7 @@ const ProductScreen = () => {
                 <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
                 <TextInput
                     style={styles.searchInput}
-                    placeholder="Search products..."
+                    placeholder={t('search_products')}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     placeholderTextColor="#999"
@@ -153,7 +155,7 @@ const ProductScreen = () => {
 
             {/* Sort Button */}
             <View style={styles.sortRow}>
-                <Text style={styles.resultCount}>{products.length} products</Text>
+                <Text style={styles.resultCount}>{products.length} {t('products')}</Text>
                 <TouchableOpacity style={styles.sortButton} onPress={() => setShowSortModal(true)}>
                     <Ionicons name="swap-vertical" size={18} color="#007AFF" />
                     <Text style={styles.sortButtonText}>{getSortLabel()}</Text>
@@ -185,7 +187,7 @@ const ProductScreen = () => {
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <Ionicons name="cube-outline" size={64} color="#CCC" />
-                            <Text style={styles.emptyText}>No products found</Text>
+                            <Text style={styles.emptyText}>{t('no_products_found')}</Text>
                         </View>
                     }
                 />
@@ -195,7 +197,7 @@ const ProductScreen = () => {
             <Modal visible={showSortModal} transparent animationType="slide">
                 <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowSortModal(false)}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Sort By</Text>
+                        <Text style={styles.modalTitle}>{t('sort_by')}</Text>
                         {SORT_OPTIONS.map((option) => (
                             <TouchableOpacity
                                 key={option.value}

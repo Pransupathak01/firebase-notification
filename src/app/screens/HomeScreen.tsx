@@ -6,6 +6,7 @@ import SendNotificationForm from '../components/SendNotificationForm';
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../hooks/useDashboard';
+import { useTranslation } from 'react-i18next';
 
 // Import Reusable Components
 import DashboardCard from '../components/DashboardCard';
@@ -17,6 +18,7 @@ const HomeScreen = () => {
     const [isAddCustomerVisible, setIsAddCustomerVisible] = useState(false);
     const navigation = useNavigation<any>();
     const { user } = useAuth();
+    const { t } = useTranslation();
     
     // React Query Hook
     const { data: qData, isLoading, isFetching, refetch } = useDashboard();
@@ -69,9 +71,9 @@ const HomeScreen = () => {
         <View style={styles.container}>
             <View style={styles.header}>
                 <View>
-                    <Text style={styles.greeting}>Namaste,</Text>
+                    <Text style={styles.greeting}>{t('namaste')}</Text>
                     <Text style={styles.username}>{userProfile.greeting_name || user?.name || user?.username || 'Shop Owner'}</Text>
-                    <Text style={styles.userRole}>{userProfile.role || user?.role || 'Virtual Dukandar'}</Text>
+                    <Text style={styles.userRole}>{userProfile.role || user?.role || t('virtual_dukandar')}</Text>
                 </View>
                 <TouchableOpacity style={styles.profileButton} onPress={() => navigation.navigate('Profile')}>
                     <Ionicons name="person" size={24} color="#007AFF" />
@@ -89,7 +91,7 @@ const HomeScreen = () => {
                 {/* Earnings Overview */}
                 <View style={styles.earningsCard}>
                     <View>
-                        <Text style={styles.earningsLabel}>Total Earnings</Text>
+                        <Text style={styles.earningsLabel}>{t('total_earnings')}</Text>
                         <Text style={styles.earningsValue}>
                             {earnings.currency || '₹'} {earnings.total_earnings?.toLocaleString() || '0'}
                         </Text>
@@ -98,15 +100,15 @@ const HomeScreen = () => {
                         <Ionicons name="wallet" size={32} color="#FFF" />
                     </View>
                     <View style={styles.withdrawBtn}>
-                        <Text style={styles.withdrawText}>Withdraw</Text>
+                        <Text style={styles.withdrawText}>{t('withdraw')}</Text>
                         <Ionicons name="chevron-forward" size={16} color="#FFF" />
                     </View>
                 </View>
 
-                <Text style={styles.sectionTitle}>Business Insights</Text>
+                <Text style={styles.sectionTitle}>{t('business_insights')}</Text>
                 <View style={styles.grid}>
                     <DashboardCard
-                        title="Active Orders"
+                        title={t('active_orders')}
                         value={stats.active_orders?.count?.toString() || "0"}
                         icon="cube"
                         color="#6C63FF"
@@ -114,7 +116,7 @@ const HomeScreen = () => {
                         subtext={stats.active_orders?.trend_text}
                     />
                     <DashboardCard
-                        title="Total Referrals"
+                        title={t('total_referrals')}
                         value={stats.referrals?.total_count?.toString() || "0"}
                         icon="people"
                         color="#FF6584"
@@ -123,14 +125,14 @@ const HomeScreen = () => {
                         subtext={stats.referrals?.pending_count ? `${stats.referrals.pending_count} pending` : undefined}
                     />
                     <DashboardCard
-                        title="Pending Payout"
+                        title={t('pending_payout')}
                         value={`${earnings.currency || '₹'} ${stats.payouts?.pending_amount?.toLocaleString() || '0'}`}
                         icon="cash"
                         color="#32C766"
                         onPress={() => console.log('Payouts')}
                     />
                     <DashboardCard
-                        title="Messages"
+                        title={t('messages')}
                         value={stats.messages?.unread_count?.toString() || "0"}
                         icon="chatbubble-ellipses"
                         color="#FFA500"
@@ -140,28 +142,28 @@ const HomeScreen = () => {
                     />
                 </View>
 
-                <Text style={styles.sectionTitle}>Quick Actions</Text>
+                <Text style={styles.sectionTitle}>{t('quick_actions')}</Text>
                 <View style={styles.actionsGrid}>
                     <QuickAction
-                        title="Share Catalog"
+                        title={t('share_catalog')}
                         icon="share-social"
                         color="#007AFF"
                         onPress={onShareCatalog}
                     />
                     <QuickAction
-                        title="Add Customer"
+                        title={t('add_customer')}
                         icon="person-add"
                         color="#32C766"
                         onPress={() => setIsAddCustomerVisible(true)}
                     />
                     <QuickAction
-                        title="My Code"
+                        title={t('my_code')}
                         icon="qr-code"
                         color="#6C63FF"
                         onPress={onShareCode}
                     />
                     <QuickAction
-                        title="Broadcast"
+                        title={t('broadcast')}
                         icon="megaphone"
                         color="#FF9500"
                         onPress={() => setIsFormVisible(true)}

@@ -10,6 +10,8 @@ import ScreenHeader from '../components/ScreenHeader';
 import { useAuth } from '../context/AuthContext';
 import { getUserProfile } from '../services/authService';
 import { useAnalytics, useTrackScreen } from '../hooks/useAnalytics';
+import { useTranslation } from 'react-i18next';
+import { changeLanguage } from '../config/i18n';
 
 const ProfileScreen = () => {
     const navigation = useNavigation<any>();
@@ -20,6 +22,7 @@ const ProfileScreen = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [isOnline, setIsOnline] = useState(true);
     const [showReferralModal, setShowReferralModal] = useState(false);
+    const { t, i18n } = useTranslation();
 
     // Track Screen
     useTrackScreen('Profile', 'ProfileScreen');
@@ -53,18 +56,39 @@ const ProfileScreen = () => {
 
     const handleLogout = () => {
         Alert.alert(
-            "Logout",
-            "Are you sure you want to logout? All your data will be cleared.",
+            t("logout"),
+            t("confirm_logout"),
             [
-                { text: "Cancel", style: "cancel" },
+                { text: t("cancel"), style: "cancel" },
                 {
-                    text: "Logout",
+                    text: t("logout"),
                     onPress: async () => {
                         // Track Engagement
                         logLogout();
                         await logout();
                     },
                     style: "destructive"
+                }
+            ]
+        );
+    };
+
+    const handleLanguageChange = () => {
+        Alert.alert(
+            t("change_language"),
+            "Select your preferred language",
+            [
+                {
+                    text: "English",
+                    onPress: () => changeLanguage('en')
+                },
+                {
+                    text: "हिन्दी (Hindi)",
+                    onPress: () => changeLanguage('hi')
+                },
+                {
+                    text: t("cancel"),
+                    style: "cancel"
                 }
             ]
         );
@@ -105,7 +129,7 @@ const ProfileScreen = () => {
     return (
         <View style={styles.container}>
             <ScreenHeader
-                title="My Profile"
+                title={t("my_profile")}
                 showBackButton={true}
             />
 
@@ -130,7 +154,7 @@ const ProfileScreen = () => {
                     <Text style={styles.profileName}>{userData?.storeName || userData?.name || userData?.username || 'Shop Owner'}</Text>
                     <Text style={styles.profilePhone}>{userData?.phone || userData?.email || 'No contact info'}</Text>
                     <View style={styles.statusContainer}>
-                        <Text style={styles.statusText}>{isOnline ? 'Online for Business' : 'Offline'}</Text>
+                        <Text style={styles.statusText}>{isOnline ? t("online_for_business") : t("offline")}</Text>
                         <Switch
                             value={isOnline}
                             onValueChange={setIsOnline}
@@ -144,60 +168,60 @@ const ProfileScreen = () => {
                 <View style={styles.statsRow}>
                     <View style={styles.statItem}>
                         <Text style={styles.statValue}>{stats.active_orders || '0'}</Text>
-                        <Text style={styles.statLabel}>Orders</Text>
+                        <Text style={styles.statLabel}>{t("orders")}</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
                         <Text style={styles.statValue}>{stats.total_referrals || '0'}</Text>
-                        <Text style={styles.statLabel}>Referrals</Text>
+                        <Text style={styles.statLabel}>{t("referrals")}</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
                         <Text style={styles.statValue}>
                             {userData?.createdAt ? new Date().getFullYear() - new Date(userData.createdAt).getFullYear() : 0} yrs
                         </Text>
-                        <Text style={styles.statLabel}>Since</Text>
+                        <Text style={styles.statLabel}>{t("since")}</Text>
                     </View>
                 </View>
 
                 {/* Earnings & Business */}
-                <SectionHeader title="Business & Earnings" />
+                <SectionHeader title={t("business_earnings")} />
                 <View style={styles.menuContainer}>
                     <MenuOption
                         icon="wallet"
-                        title="My Earnings"
+                        title={t("my_earnings")}
                         subtitle={`${userData?.currency || '₹'} ${business.total_earnings ? Number(business.total_earnings).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'} Total Earned`}
                         color="#32C766"
                         onPress={() => navigation.navigate('Earnings')}
                     />
                     <MenuOption
                         icon="card"
-                        title="Bank A/C Details"
+                        title={t("bank_details")}
                         subtitle={business.bank_name || "For Payouts"}
                         color="#6C63FF"
                         onPress={() => navigation.navigate('BankDetails')}
                     />
                     <MenuOption
                         icon="stats-chart"
-                        title="Sales Reports"
+                        title={t("sales_reports")}
                         color="#FF9500"
                         onPress={() => navigation.navigate('SalesReport')}
                     />
                 </View>
 
                 {/* Referral Tools */}
-                <SectionHeader title="Growth Tools" />
+                <SectionHeader title={t("growth_tools")} />
                 <View style={styles.menuContainer}>
                     <MenuOption
                         icon="qr-code"
-                        title="My Referral Code"
+                        title={t("my_referral_code")}
                         subtitle={userData?.referralCode || "GET_CODE"}
                         color="#007AFF"
                         onPress={() => setShowReferralModal(true)}
                     />
                     <MenuOption
                         icon="images"
-                        title="Marketing Assets"
+                        title={t("marketing_assets")}
                         subtitle="Banners, Posters, etc."
                         color="#FF6584"
                         onPress={() => console.log('Marketing')}
@@ -205,27 +229,39 @@ const ProfileScreen = () => {
                 </View>
 
                 {/* Settings & Support */}
-                <SectionHeader title="Settings" />
+                <SectionHeader title={t("settings")} />
                 <View style={styles.menuContainer}>
                     <MenuOption
                         icon="help-circle"
-                        title="Help & Support"
+                        title={t("help_support")}
                         color="#666"
                         onPress={() => console.log('Help')}
                     />
                     <MenuOption
                         icon="language"
-                        title="Change Language"
-                        subtitle="English"
+                        title={t("change_language")}
+                        subtitle={i18n.language === 'en' ? 'English' : 'हिन्दी'}
                         color="#666"
-                        onPress={() => console.log('Language')}
+                        onPress={handleLanguageChange}
                     />
                     <MenuOption
                         icon="log-out"
-                        title="Logout"
+                        title={t("logout")}
                         color="#FF3B30"
                         showChevron={false}
                         onPress={handleLogout}
+                    />
+                </View>
+
+                {/* Developer Tools */}
+                <SectionHeader title={t("developer")} />
+                <View style={styles.menuContainer}>
+                    <MenuOption
+                        icon="code-slash"
+                        title={t("sdk_module_demo")}
+                        subtitle="Explore & test SDK integrations"
+                        color="#8B5CF6"
+                        onPress={() => navigation.navigate('DeveloperScreen')}
                     />
                 </View>
 

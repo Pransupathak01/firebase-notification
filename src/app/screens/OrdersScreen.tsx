@@ -3,12 +3,13 @@ import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, TextInput, S
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ScreenHeader from '../components/ScreenHeader';
 import { useOrders } from '../hooks/useOrders';
-
-const FILTER_OPTIONS = ['Today', 'This Week', 'Last Week', 'This Month', 'Last Month'];
+import { useTranslation } from 'react-i18next';
 
 const OrdersScreen = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedFilter, setSelectedFilter] = useState('This Week');
+    const { t } = useTranslation();
+    const FILTER_OPTIONS = [t('today'), t('this_week'), t('last_week'), t('this_month'), t('last_month')];
+    const [selectedFilter, setSelectedFilter] = useState(FILTER_OPTIONS[1]);
 
     // React Query Hook
     const { data: response, isLoading, isFetching, refetch } = useOrders(selectedFilter);
@@ -93,17 +94,17 @@ const OrdersScreen = () => {
 
             <View style={styles.cardBody}>
                 <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Items:</Text>
+                    <Text style={styles.detailLabel}>{t('items')}</Text>
                     <Text style={styles.detailValue} numberOfLines={1}>
                         {Array.isArray(item.items) ? item.items.join(', ') : item.items}
                     </Text>
                 </View>
                 <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Date:</Text>
+                    <Text style={styles.detailLabel}>{t('date')}</Text>
                     <Text style={styles.detailValue}>{formatDate(item.date)}</Text>
                 </View>
                 <View style={[styles.detailRow, { marginTop: 8 }]}>
-                    <Text style={styles.totalLabel}>Total Amount</Text>
+                    <Text style={styles.totalLabel}>{t('total_amount')}</Text>
                     <Text style={styles.totalValue}>{formatCurrency(item.amount)}</Text>
                 </View>
                 {item.referralCode && (
@@ -113,7 +114,7 @@ const OrdersScreen = () => {
                     </View>
                 )}
                 <View style={[styles.detailRow, styles.earningsRow]}>
-                    <Text style={styles.earningsLabel}>My Earnings</Text>
+                    <Text style={styles.earningsLabel}>{t('my_earnings')}</Text>
                     <Text style={styles.earningsValue}>{formatCurrency(item.earnings)}</Text>
                 </View>
             </View>
@@ -122,13 +123,13 @@ const OrdersScreen = () => {
 
     return (
         <View style={styles.container}>
-            <ScreenHeader title="My Orders" />
+            <ScreenHeader title={t('my_orders')} />
 
             <View style={styles.searchContainer}>
                 <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
                 <TextInput
                     style={styles.searchInput}
-                    placeholder="Search by Order ID or Name"
+                    placeholder={t('search_placeholder')}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     placeholderTextColor="#999"
@@ -153,17 +154,17 @@ const OrdersScreen = () => {
 
             <View style={styles.summaryContainer}>
                 <View style={styles.summaryItem}>
-                    <Text style={styles.summaryLabel}>Orders</Text>
+                    <Text style={styles.summaryLabel}>{t('orders')}</Text>
                     <Text style={styles.summaryValue}>{summary.total_orders}</Text>
                 </View>
                 <View style={styles.summaryDivider} />
                 <View style={styles.summaryItem}>
-                    <Text style={styles.summaryLabel}>Total Earnings</Text>
+                    <Text style={styles.summaryLabel}>{t('total_earnings')}</Text>
                     <Text style={styles.summaryValueTotal}>{formatCurrency(summary.total_earnings)}</Text>
                 </View>
                 <View style={styles.summaryDivider} />
                 <View style={styles.summaryItem}>
-                    <Text style={styles.summaryLabel}>Referral Savings</Text>
+                    <Text style={styles.summaryLabel}>{t('referral_savings')}</Text>
                     <Text style={styles.summaryValueReferral}>{formatCurrency(summary.total_referral_discount || 0)}</Text>
                 </View>
             </View>
@@ -185,7 +186,7 @@ const OrdersScreen = () => {
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <Ionicons name="documents-outline" size={64} color="#CCC" />
-                            <Text style={styles.emptyText}>No orders found for {selectedFilter}</Text>
+                            <Text style={styles.emptyText}>{t('no_orders_found')} {selectedFilter}</Text>
                         </View>
                     }
                 />
